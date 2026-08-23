@@ -46,9 +46,9 @@ try {
     Write-Host "X-Edge-Node: $($res1.EdgeNode)"
 
     if ($res1.CacheStatus -eq "MISS") {
-        Write-Host "✓ Success: Got Cache MISS as expected." -ForegroundColor Green
+        Write-Host "[OK] Success: Got Cache MISS as expected." -ForegroundColor Green
     } else {
-        Write-Host "✗ Error: Did not get Cache MISS. (Got: $($res1.CacheStatus))" -ForegroundColor Red
+        Write-Host "[FAIL] Error: Did not get Cache MISS. (Got: $($res1.CacheStatus))" -ForegroundColor Red
     }
 } catch {
     Write-Host "Request failed: $_" -ForegroundColor Red
@@ -64,9 +64,9 @@ try {
     Write-Host "X-Edge-Node: $($res2.EdgeNode)"
 
     if ($res2.CacheStatus -eq "HIT") {
-        Write-Host "✓ Success: Got Cache HIT as expected." -ForegroundColor Green
+        Write-Host "[OK] Success: Got Cache HIT as expected." -ForegroundColor Green
     } else {
-        Write-Host "✗ Error: Did not get Cache HIT. (Got: $($res2.CacheStatus))" -ForegroundColor Red
+        Write-Host "[FAIL] Error: Did not get Cache HIT. (Got: $($res2.CacheStatus))" -ForegroundColor Red
     }
     $cachedNode = $res2.EdgeNode
     Write-Host "Currently cached on edge node: $cachedNode" -ForegroundColor Blue
@@ -93,9 +93,9 @@ try {
     Write-Host "X-Edge-Node: $($res3.EdgeNode)"
 
     if ($res3.CacheStatus -eq "MISS") {
-        Write-Host "✓ Success: Got Cache MISS after purge as expected." -ForegroundColor Green
+        Write-Host "[OK] Success: Got Cache MISS after purge as expected." -ForegroundColor Green
     } else {
-        Write-Host "✗ Error: Did not get Cache MISS after purge." -ForegroundColor Red
+        Write-Host "[FAIL] Error: Did not get Cache MISS after purge." -ForegroundColor Red
     }
 } catch {
     Write-Host "Request failed: $_" -ForegroundColor Red
@@ -103,7 +103,13 @@ try {
 
 # 6. Test Failover Capability
 Write-Host "`n[6/6] Demonstrating automated failover..." -ForegroundColor Yellow
-if (Get-Command docker -ErrorAction SilentlyContinue) {
+$hasDocker = $false
+try {
+    $ver = & docker --version
+    if ($ver) { $hasDocker = $true }
+} catch {}
+
+if ($hasDocker) {
     if (-not $cachedNode) { $cachedNode = "edge-1" }
     Write-Host "Stopping container for serving node: $cachedNode..." -ForegroundColor Blue
     docker compose stop $cachedNode
@@ -119,9 +125,9 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
         Write-Host "X-Edge-Node: $($resFailover.EdgeNode)"
 
         if ($resFailover.EdgeNode -and ($resFailover.EdgeNode -ne $cachedNode)) {
-            Write-Host "✓ Success: Failover occurred! Request routed to healthy node: $($resFailover.EdgeNode)" -ForegroundColor Green
+            Write-Host "[OK] Success: Failover occurred! Request routed to healthy node: $($resFailover.EdgeNode)" -ForegroundColor Green
         } else {
-            Write-Host "✗ Error: Failover failed or routed to same node." -ForegroundColor Red
+            Write-Host "[FAIL] Error: Failover failed or routed to same node." -ForegroundColor Red
         }
     } catch {
         Write-Host "Failover request failed: $_" -ForegroundColor Red

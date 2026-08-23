@@ -95,6 +95,13 @@ func (c *Cache) Stats() (uint64, uint64, float64) {
 	return c.hits, c.misses, float64(c.hits) / float64(total)
 }
 
+// Size returns the number of items in the cache.
+func (c *Cache) Size() int {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return len(c.items)
+}
+
 // copyHeader duplicates an http.Header map to avoid concurrent modification issues.
 func copyHeader(src http.Header) http.Header {
 	if src == nil {

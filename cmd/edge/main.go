@@ -13,6 +13,9 @@ import (
 	"time"
 
 	"mini-cdn/pkg/cache"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
@@ -22,7 +25,66 @@ var (
 	controlURL = "http://localhost:7000"
 	port       = "8080"
 	cdnCache   *cache.Cache
+
+	httpRequestsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "Number of HTTP requests processed by this edge node.",
+		},
+		[]string{"node_id", "path", "method", "status", "cache_status"},
+	)
+	httpRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name: "http_request_duration_seconds",
+			Help: "Latency of HTTP requests in seconds.",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"node_id", "path", "method"},
+	)
 )
+
+type statusWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (w *statusWriter) WriteHeader(status int) {
+	w.status = status
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *statusWriter) Write(b []byte) (int, error) {
+	if w.status == 0 {
+		w.status = 200
+	}
+	return w.ResponseWriter.Write(b)
+}
+
+func metricsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/metrics" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		start := time.Now()
+		sw := &statusWriter{ResponseWriter: w, status: 200}
+		next.ServeHTTP(sw, r)
+		duration := time.Since(start).Seconds()
+
+		// Get cache status (X-Cache header from response)
+		cacheStatus := sw.Header().Get("X-Cache")
+		if cacheStatus == "" {
+			cacheStatus = "BYPASS"
+		}
+
+		path := r.URL.Path
+		method := r.Method
+		statusStr := strconv.Itoa(sw.status)
+
+		httpRequestsTotal.WithLabelValues(nodeID, path, method, statusStr, cacheStatus).Inc()
+		httpRequestDuration.WithLabelValues(nodeID, path, method).Observe(duration)
+	})
+}
 
 type Node struct {
 	ID     string `json:"id"`
@@ -55,17 +117,36 @@ func main() {
 
 	cdnCache = cache.NewCache()
 
+	// Register Prometheus metrics
+	prometheus.MustRegister(httpRequestsTotal)
+	prometheus.MustRegister(httpRequestDuration)
+	prometheus.MustRegister(prometheus.NewGaugeFunc(
+		prometheus.GaugeOpts{
+			Name: "cache_size_items",
+			Help: "Number of active items in the local cache.",
+			ConstLabels: prometheus.Labels{"node_id": nodeID},
+		},
+		func() float64 {
+			if cdnCache != nil {
+				return float64(cdnCache.Size())
+			}
+			return 0
+		},
+	))
+
 	log.Printf("Starting Edge Node %s in region %s on port %s", nodeID, region, port)
 	log.Printf("Origin URL: %s, Control URL: %s", originURL, controlURL)
 
 	// Start Heartbeat registration background worker
 	go startHeartbeat()
 
-	http.HandleFunc("/health", handleHealth)
-	http.HandleFunc("/internal/purge", handlePurge)
-	http.HandleFunc("/", handleProxy)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", handleHealth)
+	mux.HandleFunc("/internal/purge", handlePurge)
+	mux.Handle("/metrics", promhttp.Handler())
+	mux.HandleFunc("/", handleProxy)
 
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	if err := http.ListenAndServe(":"+port, metricsMiddleware(mux)); err != nil {
 		log.Fatalf("Edge Node failed to start: %v", err)
 	}
 }

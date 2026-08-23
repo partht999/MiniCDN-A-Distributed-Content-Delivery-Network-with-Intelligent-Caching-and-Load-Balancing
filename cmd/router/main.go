@@ -7,10 +7,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
 	"mini-cdn/pkg/hash"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Node struct {
@@ -28,7 +32,54 @@ var (
 	nodesMap     = make(map[string]Node)
 	healthyNodes = make(map[string]bool)
 	nodesMu      sync.RWMutex
+
+	routerRequestsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "router_requests_total",
+			Help: "Number of requests routed by the smart router.",
+		},
+		[]string{"path", "method", "status", "target_node"},
+	)
 )
+
+type statusWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (w *statusWriter) WriteHeader(status int) {
+	w.status = status
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *statusWriter) Write(b []byte) (int, error) {
+	if w.status == 0 {
+		w.status = 200
+	}
+	return w.ResponseWriter.Write(b)
+}
+
+func metricsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/metrics" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		sw := &statusWriter{ResponseWriter: w, status: 200}
+		next.ServeHTTP(sw, r)
+
+		targetNode := sw.Header().Get("X-Edge-Node")
+		if targetNode == "" {
+			targetNode = "none"
+		}
+
+		path := r.URL.Path
+		method := r.Method
+		statusStr := strconv.Itoa(sw.status)
+
+		routerRequestsTotal.WithLabelValues(path, method, statusStr, targetNode).Inc()
+	})
+}
 
 func main() {
 	if ctrl := os.Getenv("CONTROL_URL"); ctrl != "" {
@@ -41,15 +92,37 @@ func main() {
 	// Initialize Consistent Hash Ring with 50 virtual nodes per physical node
 	hashRing = hash.NewRing(50)
 
+	// Register Prometheus metrics
+	prometheus.MustRegister(routerRequestsTotal)
+	prometheus.MustRegister(prometheus.NewGaugeFunc(
+		prometheus.GaugeOpts{
+			Name: "router_active_nodes",
+			Help: "Number of active healthy edge nodes currently registered in the hash ring.",
+		},
+		func() float64 {
+			nodesMu.RLock()
+			defer nodesMu.RUnlock()
+			count := 0
+			for _, healthy := range healthyNodes {
+				if healthy {
+					count++
+				}
+			}
+			return float64(count)
+		},
+	))
+
 	log.Printf("Starting Smart Router on port %s", port)
 	log.Printf("Control Plane URL: %s", controlURL)
 
 	// Start background node sync and health checking worker
 	go startDiscoveryAndHealthChecks()
 
-	http.HandleFunc("/", handleRoute)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", handleRoute)
+	mux.Handle("/metrics", promhttp.Handler())
 
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	if err := http.ListenAndServe(":"+port, metricsMiddleware(mux)); err != nil {
 		log.Fatalf("Router failed to start: %v", err)
 	}
 }
