@@ -151,6 +151,9 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cacheKey := r.URL.Path
+	if r.URL.RawQuery != "" {
+		cacheKey = fmt.Sprintf("%s?%s", r.URL.Path, r.URL.RawQuery)
+	}
 
 	// 1. Check cache HIT
 	if entry, hit := cdnCache.Get(cacheKey); hit {
@@ -260,11 +263,15 @@ func fetchAndStoreFromOrigin(w http.ResponseWriter, r *http.Request, cacheKey st
 		w.Write(bodyBytes)
 	}
 
-	// Caching decision: only cache successful GET responses
+	// Caching decision: only cache successful GET responses with positive TTL
 	if r.Method == http.MethodGet && resp.StatusCode == http.StatusOK {
 		ttl := parseCacheControl(resp.Header.Get("Cache-Control"))
-		log.Printf("[%s] Caching key: %s with TTL: %v", nodeID, cacheKey, ttl)
-		cdnCache.Set(cacheKey, resp.StatusCode, bodyBytes, resp.Header, ttl)
+		if ttl > 0 {
+			log.Printf("[%s] Caching key: %s with TTL: %v", nodeID, cacheKey, ttl)
+			cdnCache.Set(cacheKey, resp.StatusCode, bodyBytes, resp.Header, ttl)
+		} else {
+			log.Printf("[%s] Skipping cache for key: %s (TTL: %v)", nodeID, cacheKey, ttl)
+		}
 	}
 }
 
@@ -313,15 +320,22 @@ func parseCacheControl(headerVal string) time.Duration {
 	parts := strings.Split(headerVal, ",")
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
+		if part == "no-cache" || part == "no-store" || part == "private" {
+			return 0 // Do not cache
+		}
+	}
+
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
 		if strings.HasPrefix(part, "max-age=") {
 			secondsStr := strings.TrimPrefix(part, "max-age=")
 			seconds, err := strconv.Atoi(secondsStr)
 			if err == nil {
+				if seconds <= 0 {
+					return 0
+				}
 				return time.Duration(seconds) * time.Second
 			}
-		}
-		if part == "no-cache" || part == "no-store" || part == "private" {
-			return 0 // Do not cache
 		}
 	}
 
