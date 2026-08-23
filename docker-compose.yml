@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  origin:
+    build:
+      context: .
+      dockerfile: cmd/origin/Dockerfile
+    container_name: origin
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./sample-content:/sample-content
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  control:
+    build:
+      context: .
+      dockerfile: cmd/control/Dockerfile
+    container_name: control
+    environment:
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "7000:7000"
+    depends_on:
+      - redis
+
+  edge-1:
+    build:
+      context: .
+      dockerfile: cmd/edge/Dockerfile
+    container_name: edge-1
+    environment:
+      - NODE_ID=edge-1
+      - REGION=local
+      - ORIGIN_URL=http://origin:9000
+      - CONTROL_URL=http://control:7000
+    ports:
+      - "8081:8080"
+    depends_on:
+      - origin
+      - control
+
+  edge-2:
+    build:
+      context: .
+      dockerfile: cmd/edge/Dockerfile
+    container_name: edge-2
+    environment:
+      - NODE_ID=edge-2
+      - REGION=local
+      - ORIGIN_URL=http://origin:9000
+      - CONTROL_URL=http://control:7000
+    ports:
+      - "8082:8080"
+    depends_on:
+      - origin
+      - control
+
+  edge-3:
+    build:
+      context: .
+      dockerfile: cmd/edge/Dockerfile
+    container_name: edge-3
+    environment:
+      - NODE_ID=edge-3
+      - REGION=local
+      - ORIGIN_URL=http://origin:9000
+      - CONTROL_URL=http://control:7000
+    ports:
+      - "8083:8080"
+    depends_on:
+      - origin
+      - control
+
+  router:
+    build:
+      context: .
+      dockerfile: cmd/router/Dockerfile
+    container_name: router
+    environment:
+      - CONTROL_URL=http://control:7000
+    ports:
+      - "8080:8080"
+    depends_on:
+      - edge-1
+      - edge-2
+      - edge-3
+      - control
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    depends_on:
+      - router
+      - edge-1
+      - edge-2
+      - edge-3
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./configs/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
