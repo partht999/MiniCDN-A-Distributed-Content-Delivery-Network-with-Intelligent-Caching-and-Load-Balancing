@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MiniCDN Project Brief for the Team</title>
+<style>
+  *{box-sizing:border-box} body{margin:0;background:#edf0f3;color:#18212b;font:16px/1.5 Arial,sans-serif}
+  main{max-width:900px;margin:28px auto} .page{background:white;padding:48px 58px;margin-bottom:24px}
+  h1,h2,h3{color:#000;line-height:1.2} h1{font-size:32px;margin:0 0 16px} h2{font-size:23px;margin:28px 0 12px} h3{font-size:17px;margin:20px 0 8px}
+  p{margin:0 0 14px} .meta{color:#52606d;font-size:14px;margin-bottom:22px} ul,ol{padding-left:23px;margin:10px 0 18px} li{margin:7px 0}
+  table{width:100%;border-collapse:collapse;margin:16px 0 22px;font-size:14px} th,td{border:1px solid #d9d9d9;padding:10px 12px;text-align:left;vertical-align:middle}
+  th{background:#dce6ef;color:black} tbody tr:nth-child(even){background:#f5f7f9} a{color:#165a88;overflow-wrap:anywhere}
+  code{font:13px Consolas,monospace} pre{white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.5 Consolas,monospace;margin:14px 0 20px}
+  .small{font-size:13px;color:#44505c} svg{display:block;width:100%;height:auto;margin:18px 0} .tools{text-align:right;font-size:13px;padding:12px}
+  @media print{@page{size:A4;margin:17mm} body{background:white;font-size:10.5pt;line-height:1.42} main{margin:0;max-width:none}.page{padding:0;margin:0;break-after:page}.page:last-child{break-after:auto}h1{font-size:24pt}h2{font-size:17pt;margin-top:20px}h3{font-size:12pt}table{font-size:9pt}th,td{padding:7px 9px}p{margin-bottom:10px}.tools{display:none}a{color:#000}tr{break-inside:avoid}h2,h3{break-after:avoid}svg{max-height:120px}}
+</style>
+</head>
+<body>
+<main>
+<div class="tools">Share this HTML file directly or use your browser Print command to save it as PDF.</div>
+<section class="page">
+<h1>MiniCDN Project Brief for the Team</h1>
+<p class="meta">Project rationale, USP, implemented changes and dashboard guide<br>1 October 2026</p>
+<p>We are building a small, observable content delivery network to study how caching and routing reduce origin work while keeping content available and fresh. The current system provides a working baseline across three edge nodes. We will use controlled experiments to assess each research improvement.</p>
+<h2>Why we are building this project</h2>
+<p>A website that serves every asset from one origin repeats network transfers and concentrates request load at a single service. Edge caches can reuse responses, but they introduce engineering trade-offs: popular content can overload one edge, concurrent misses can overwhelm the origin, and missed purges can leave old content behind.</p>
+<p>MiniCDN gives us control over those mechanisms. We can inspect the request path, change one policy at a time, simulate failures, and measure the effect. The project combines HTTP, concurrency, distributed registration, cache correctness and observability in a system small enough to run locally.</p>
+<h2>The project USP</h2>
+<p><strong>MiniCDN is a reproducible CDN research platform for reducing duplicate origin work and evaluating the balance between cache locality, edge load and content freshness.</strong></p>
+<p>The first implemented contribution is cache-fill coordination. When many clients request the same uncached static object, one request fills the edge cache and waiting requests reuse it. The broader research direction adds load-aware routing and invalidation recovery, with explicit measurements of both benefits and overhead.</p>
+<p>The techniques are established in industry and research. Our contribution should be the implementation choices, their integration into this system, and reproducible experimental comparisons. We should describe adaptive routing and gossip invalidation as planned until they are implemented and evaluated.</p>
+<h2>A concise project explanation</h2>
+<p>“We are building a small CDN with three edge caches and a health-aware router. We already reduce duplicate origin fetches during concurrent cache misses. Next, we will investigate how to distribute skewed traffic and recover missed cache invalidations, using Prometheus and Grafana to compare each improvement with a fixed baseline.”</p>
+</section>
+<section class="page">
+<h2>How the current system works</h2>
+<svg viewBox="0 0 740 128" role="img" aria-label="Clients send requests through the router to three edge caches. Cache misses contact the origin. The control service provides registration and purging. Prometheus and Grafana provide monitoring.">
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="#43586b"/></marker></defs>
+<g fill="#f2f6f9" stroke="#9aacba"><rect x="2" y="24" width="118" height="52" rx="6"/><rect x="163" y="24" width="124" height="52" rx="6"/><rect x="330" y="8" width="180" height="84" rx="6"/><rect x="553" y="24" width="180" height="52" rx="6"/></g>
+<g stroke="#43586b" stroke-width="2" marker-end="url(#arrow)"><path d="M120,50 H160"/><path d="M287,50 H327"/><path d="M510,50 H550"/></g>
+<g font-family="Arial,sans-serif" font-size="16" text-anchor="middle" fill="#18212b"><text x="61" y="56">Client</text><text x="225" y="56">Router</text><text x="420" y="35">Three edge caches</text><text x="420" y="60">HIT serves locally</text><text x="420" y="81">MISS fetches origin</text><text x="643" y="56">Origin files</text><text x="368" y="119" font-size="13">Control and Redis manage registration and purge   ·   Prometheus and Grafana show metrics</text></g>
+</svg>
+<p>The router selects a healthy edge using consistent hashing on the URL path. Each edge stores successful cacheable GET responses in memory. A fresh response is a HIT; otherwise the edge contacts the origin and may populate the cache. Edges register periodically with the Redis-backed control service, which also broadcasts exact-key purge requests.</p>
+<table>
+<thead><tr><th>Capability</th><th>Current status</th></tr></thead>
+<tbody>
+<tr><td>Three edges and hash routing</td><td>Implemented with 50 virtual nodes per edge and health-aware fallback</td></tr>
+<tr><td>TTL and response validators</td><td>Memory TTL; origin sends ETag and Last-Modified</td></tr>
+<tr><td>Concurrent cache fills</td><td>Buffered coordination for cacheable GET responses</td></tr>
+<tr><td>Control plane and monitoring</td><td>Redis registration, centralized purge, Prometheus and Grafana</td></tr>
+<tr><td>Disk tier and bounded eviction</td><td>Planned; current memory map has no byte limit or LRU</td></tr>
+<tr><td>Adaptive routing and purge recovery</td><td>Planned; selection and heartbeat settings are currently fixed</td></tr>
+</tbody></table>
+<h2>Evidence collected so far</h2>
+<p>The barrier-controlled regression sends 32 simultaneous requests for one cold object. Without coordination it observes 32 origin fetches; with coordination it observes one. This passed in 10 repeated runs, equivalent to a <strong>96.9% reduction in origin fetches for this specific test</strong>. It does not establish a general latency or production performance improvement.</p>
+<p>The full test suite passed with native Windows Go 1.27.0 and the project Go 1.21 container toolchain. Linux race checks also passed. A separate dashboard demonstration completed 640 requests with no errors, 626 HITs and 14 MISSes; Prometheus recorded 208 coalesced requests. These are local demonstration observations, not a controlled performance benchmark.</p>
+</section>
+<section class="page">
+<h2>Changes added to the project</h2>
+<h3>Per object cache fill coordination</h3>
+<p>A new per-key gate lets one request perform a cache fill while other requests for that key wait. After acquiring the gate, each request rechecks the cache. Different keys can proceed independently, canceled waiters can leave, and unused gates are removed. Set <code>COALESCING_ENABLED=false</code> on an edge to run the independent-fetch baseline.</p>
+<h3>Cache correctness and purge ordering</h3>
+<p>An internal <code>Peek</code> checks freshness without counting another client lookup. Requests with Authorization, Cookie, Range or explicit Cache-Control bypass shared caching. Responses with Vary or Set-Cookie are excluded from storage until variant-aware keys are implemented.</p>
+<p>Exact-key purge waits for coordinated fills before deleting the cached object, preventing an earlier coordinated fill from repopulating that key after purge acknowledgement. This protection is scoped to coordination mode; durable missed-purge recovery and query-variant or prefix purging still need work.</p>
+<h3>Metrics and regression tests</h3>
+<p><code>cdn_origin_requests_total</code> counts origin fetch operations, including misses and bypasses. <code>cdn_coalesced_requests_total</code> counts initial misses that reused another request's cache fill. Followers retain <code>X-Cache: HIT</code>, while the separate counter identifies the coordination benefit.</p>
+<p>Tests cover the baseline comparison, canceled followers, independent-key progress, gate cleanup and conservative response cacheability. Go was installed and the existing Docker engine was started so these checks could execute.</p>
+<h3>Dashboard and team documentation</h3>
+<p>The dashboard now filters health and purge requests out of content traffic, exposes origin and coalescing counters, and adds cumulative response counts and an estimated edge P95 latency panel. Datasource references are aligned with Grafana provisioning. The repository also includes the research roadmap, development commands and a bounded metrics-demo script.</p>
+<h2>Limits of the first increment</h2>
+<p>The origin response is still read completely into memory. There is no streaming fan-out, disk persistence or object-size limit. The fill gate remains held while the leader writes its response, so a slow client can delay followers. Uncacheable and failed responses are fetched independently by waiting callers, potentially serially. These are concrete topics for the next increment.</p>
+<p>Relevant files: <code>cmd/edge/coalescing.go</code>, <code>cmd/edge/main.go</code>, <code>cmd/edge/coalescing_test.go</code>, <code>pkg/cache/cache.go</code> and <code>configs/grafana/provisioning</code>.</p>
+</section>
+<section class="page">
+<h2>Reading the Grafana dashboard</h2>
+<p>On the computer running Docker, open <a href="http://localhost:3000/d/minicdn-dashboard">http://localhost:3000/d/minicdn-dashboard</a>. The local demo login is <code>admin</code> with password <code>admin</code>. If Grafana asks to change it, complete that step yourself or use the available skip option. These localhost links only work on the machine running the stack.</p>
+<table>
+<thead><tr><th>Panel</th><th>What it tells us</th></tr></thead>
+<tbody>
+<tr><td>Cache Hit Ratio</td><td>Content HIT percentage over the last minute; includes coalesced followers</td></tr>
+<tr><td>Active Edge Nodes</td><td>Healthy edges recognized by the router; expected value is 3</td></tr>
+<tr><td>Origin fetches since edge start</td><td>Fetch operations sent to origin; rises on misses and bypasses</td></tr>
+<tr><td>Coalesced requests since edge start</td><td>Initial misses served using a concurrent cache fill</td></tr>
+<tr><td>Cache Sizes</td><td>Stored entries per edge, not bytes; some expired entries await lookup</td></tr>
+<tr><td>RPS per Edge Node</td><td>Content requests per second, averaged over one minute</td></tr>
+<tr><td>Hits vs Misses vs Bypasses</td><td>Recent rates for each response cache status</td></tr>
+<tr><td>Estimated edge P95 latency</td><td>Histogram estimate of edge processing latency; excludes the complete client round trip</td></tr>
+<tr><td>Content responses since edge start</td><td>Cumulative HIT, MISS and BYPASS totals that remain visible after a short demo</td></tr>
+</tbody></table>
+<p>To generate activity, run <code>node scripts/metrics-demo.mjs</code> from the project root while watching Grafana with a five-second refresh. It sends 640 requests over roughly 20 seconds. Rates return toward zero after traffic stops; that is expected. Cumulative counters reset when their edge restarts. A short test with fast origin responses may have fewer coalesced followers because some clients arrive after the cache is already warm.</p>
+<p>The P95 chart estimates the latency below which 95% of edge requests complete. Histogram buckets limit precision, especially for very fast local requests. Use a client-side benchmark for end-to-end P95 and P99. The small demonstration produced 480, 80 and 80 requests across the three edges; hashing a few URLs does not guarantee equal request counts.</p>
+<h2>Next implementation stages</h2>
+<ol>
+<li>Finish the cache foundation: bounded storage, variant-aware keys, expired-object revalidation and shorter fill-gate lifetime.</li>
+<li>Compare hash routing, round robin and adaptive load-aware selection under uniform and skewed workloads.</li>
+<li>Add durable invalidation versions and recovery after an edge disconnects or misses a purge.</li>
+<li>Choose one extension such as hot-object replication, peer caching or prefetching, with an explicit overhead budget.</li>
+</ol>
+<p class="small">The separate phase-deliverables document will determine the final academic milestones. Team research source: <a href="https://docs.google.com/spreadsheets/d/13rEOH9j8I06yjXPwloEVA6oUUNkNzP6fuSS_WThoX5U/edit">Research gaps mini cdn</a>. Supporting references: <a href="https://pkg.go.dev/golang.org/x/sync/singleflight">Go singleflight</a>, <a href="https://ojs.aaai.org/index.php/AAAI/article/view/16517">Bounded-load hashing</a>, <a href="https://grafana.com/docs/grafana/latest/administration/provisioning/">Grafana provisioning</a> and <a href="https://prometheus.io/docs/practices/histograms/">Prometheus histograms</a>.</p>
+</section>
+</main>
+</body>
+</html>

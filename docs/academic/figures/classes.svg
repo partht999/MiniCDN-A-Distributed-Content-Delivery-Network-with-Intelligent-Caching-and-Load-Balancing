@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="495" height="285" preserveAspectRatio="xMinYMin meet" viewBox="0 0 495 285" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>...</title>
+	<desc>...</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="495" height="285"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-285)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="0" y="145" width="220" height="125" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,96%,96%); fill-rule: evenodd;"/>
+			<text x="100.748" y="244" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,488) scale(1,-1)">Ring</text>
+			<path d="M 0,230 L 220,230 Z" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="8" y="212" style="font-family: Helvetica; font-size: 8px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,424) scale(1,-1)">replicas; ring; hashMap</text>
+			<path d="M 0,198 L 220,198 Z" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="8" y="180" style="font-family: Helvetica; font-size: 8px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,360) scale(1,-1)">GetCandidates(key)</text>
+			<text x="8" y="167" style="font-family: Helvetica; font-size: 8px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,334) scale(1,-1)">SetNodes(nodes)</text>
+			<rect x="275" y="145" width="220" height="125" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,96%,96%); fill-rule: evenodd;"/>
+			<text x="369.2455" y="244" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,488) scale(1,-1)">selector</text>
+			<path d="M 275,230 L 495,230 Z" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="283" y="212" style="font-family: Helvetica; font-size: 8px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,424) scale(1,-1)">loads; next; mutex</text>
+			<path d="M 275,198 L 495,198 Z" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="283" y="180" style="font-family: Helvetica; font-size: 8px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,360) scale(1,-1)">reserve(mode, ids, slack)</text>
+			<text x="283" y="167" style="font-family: Helvetica; font-size: 8px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,334) scale(1,-1)">load(id)</text>
+			<rect x="0" y="5" width="220" height="125" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,96%,96%); fill-rule: evenodd;"/>
+			<text x="96.995" y="104" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,208) scale(1,-1)">Cache</text>
+			<path d="M 0,90 L 220,90 Z" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="8" y="72" style="font-family: Helvetica; font-size: 8px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,144) scale(1,-1)">items; order; usedBytes</text>
+			<path d="M 0,58 L 220,58 Z" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="8" y="40" style="font-family: Helvetica; font-size: 8px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,80) scale(1,-1)">Get / Set / Stale</text>
+			<text x="8" y="27" style="font-family: Helvetica; font-size: 8px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,54) scale(1,-1)">DeletePrefix / Clear</text>
+			<rect x="275" y="5" width="220" height="125" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,96%,96%); fill-rule: evenodd;"/>
+			<text x="361.492" y="104" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,208) scale(1,-1)">CacheEntry</text>
+			<path d="M 275,90 L 495,90 Z" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="283" y="72" style="font-family: Helvetica; font-size: 8px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,144) scale(1,-1)">Body; Header; Expiration</text>
+			<path d="M 275,58 L 495,58 Z" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="283" y="40" style="font-family: Helvetica; font-size: 8px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,80) scale(1,-1)">StatusCode</text>
+			<text x="283" y="27" style="font-family: Helvetica; font-size: 8px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,54) scale(1,-1)">IsExpired()</text>
+			<polygon points="220 65, 228 70, 236 65, 228 60" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,41%,47%); fill-rule: evenodd;"/>
+			<path d="M 236,65 L 275,65 Z" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="242" y="75" style="font-family: Helvetica; font-size: 8px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,150) scale(1,-1)">0..*</text>
+		</g>
+	</g>
+</svg>

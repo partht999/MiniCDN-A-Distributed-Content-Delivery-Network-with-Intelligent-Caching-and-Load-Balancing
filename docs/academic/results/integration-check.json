@@ -1,0 +1,74 @@
+{
+  "executedAt": "2026-10-10T10:36:25.844Z",
+  "results": [
+    {
+      "name": "Three-edge purge acknowledgement",
+      "passed": true
+    },
+    {
+      "name": "Router-origin body fidelity and MISS to HIT",
+      "passed": true
+    },
+    {
+      "name": "HEAD uses cached headers without body",
+      "passed": true
+    },
+    {
+      "name": "Cached ETag conditional GET",
+      "passed": true
+    },
+    {
+      "name": "Personalized requests bypass shared cache",
+      "passed": true
+    },
+    {
+      "name": "Missing content remains HTTP 404",
+      "passed": true
+    },
+    {
+      "name": "Locate edge-1 hash owner before failure",
+      "passed": true
+    },
+    {
+      "name": "Hard-stopped edge leaves content available",
+      "passed": true,
+      "requestLatencyMs": 567.4579000000003
+    },
+    {
+      "name": "Post-stop request completes within five-second target",
+      "passed": true,
+      "requestLatencyMs": 567.4579000000003,
+      "note": "This times one request after docker stop completes; it is not a full detection-delay distribution."
+    },
+    {
+      "name": "Unavailable edge purge reports partial failure",
+      "passed": true
+    },
+    {
+      "name": "Returning edge retrieves current content",
+      "passed": true,
+      "note": "Container restart clears memory too; disconnected-node check separately tests generation-only recovery."
+    },
+    {
+      "name": "Disconnected edge purge reports failure",
+      "passed": true
+    },
+    {
+      "name": "Missed invalidation recovered without process restart",
+      "passed": true,
+      "cache": "MISS"
+    },
+    {
+      "name": "Partition recovery preserves edge process",
+      "passed": true
+    },
+    {
+      "name": "Grafana database healthy",
+      "passed": true
+    },
+    {
+      "name": "Prometheus targets recovered",
+      "passed": true
+    }
+  ]
+}

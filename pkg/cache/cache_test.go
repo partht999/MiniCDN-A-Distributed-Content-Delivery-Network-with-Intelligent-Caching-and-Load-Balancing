@@ -87,12 +87,12 @@ func TestCache_TTLExpiration(t *testing.T) {
 		t.Fatalf("expected nil entry after expiration, got %v", entry)
 	}
 
-	// Verify it was evicted from map
+	// Retain bounded stale content only for conditional origin validation.
 	c.mu.RLock()
 	_, exists := c.items[key]
 	c.mu.RUnlock()
-	if exists {
-		t.Errorf("expected key %s to be evicted from cache items map", key)
+	if !exists {
+		t.Errorf("expected stale key %s to remain for revalidation", key)
 	}
 }
 

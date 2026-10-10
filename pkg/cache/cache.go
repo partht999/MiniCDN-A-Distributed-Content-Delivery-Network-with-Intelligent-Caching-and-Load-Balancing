@@ -1,7 +1,9 @@
 package cache
 
 import (
+	"container/list"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -21,16 +23,30 @@ func (e *CacheEntry) IsExpired() bool {
 
 // Cache is a thread-safe in-memory cache.
 type Cache struct {
-	mu     sync.RWMutex
-	items  map[string]*CacheEntry
-	hits   uint64
-	misses uint64
+	mu        sync.RWMutex
+	items     map[string]*CacheEntry
+	order     *list.List
+	positions map[string]*list.Element
+	maxBytes  int64
+	usedBytes int64
+	evictions uint64
+	hits      uint64
+	misses    uint64
 }
 
 // NewCache initializes and returns a new Cache.
 func NewCache() *Cache {
+	return NewBoundedCache(64 * 1024 * 1024)
+}
+
+// NewBoundedCache bounds response-body bytes; metadata is additional overhead.
+func NewBoundedCache(maxBytes int64) *Cache {
+	if maxBytes <= 0 {
+		maxBytes = 64 * 1024 * 1024
+	}
 	return &Cache{
 		items: make(map[string]*CacheEntry),
+		order: list.New(), positions: make(map[string]*list.Element), maxBytes: maxBytes,
 	}
 }
 
@@ -47,12 +63,12 @@ func (c *Cache) Get(key string) (*CacheEntry, bool) {
 	}
 
 	if entry.IsExpired() {
-		delete(c.items, key)
 		c.misses++
 		return nil, false
 	}
 
 	c.hits++
+	c.order.MoveToFront(c.positions[key])
 	return entry, true
 }
 
@@ -60,20 +76,75 @@ func (c *Cache) Get(key string) (*CacheEntry, bool) {
 func (c *Cache) Set(key string, statusCode int, body []byte, header http.Header, ttl time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	c.remove(key)
+	if int64(len(body)) > c.maxBytes || ttl <= 0 {
+		return
+	}
+	for c.usedBytes+int64(len(body)) > c.maxBytes || len(c.items) >= 10000 {
+		c.remove(c.order.Back().Value.(string))
+		c.evictions++
+	}
 
 	c.items[key] = &CacheEntry{
 		StatusCode: statusCode,
-		Body:       body,
+		Body:       append([]byte(nil), body...),
 		Header:     copyHeader(header),
 		Expiration: time.Now().Add(ttl),
 	}
+	c.positions[key] = c.order.PushFront(key)
+	c.usedBytes += int64(len(body))
+}
+
+// Stale provides an immutable candidate for conditional origin revalidation.
+// It must never be served before the origin confirms freshness.
+func (c *Cache) Stale(key string) (*CacheEntry, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	entry, ok := c.items[key]
+	return entry, ok && entry.IsExpired()
+}
+
+func (c *Cache) remove(key string) {
+	if entry, ok := c.items[key]; ok {
+		c.usedBytes -= int64(len(entry.Body))
+		delete(c.items, key)
+		c.order.Remove(c.positions[key])
+		delete(c.positions, key)
+	}
+}
+
+func (c *Cache) Usage() (int64, uint64) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.usedBytes, c.evictions
+}
+
+// Peek checks freshness without recording another request in cache statistics.
+func (c *Cache) Peek(key string) (*CacheEntry, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	entry, ok := c.items[key]
+	return entry, ok && !entry.IsExpired()
 }
 
 // Delete removes an item from the cache.
 func (c *Cache) Delete(key string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	delete(c.items, key)
+	c.remove(key)
+}
+
+func (c *Cache) DeletePrefix(prefix string) int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	count := 0
+	for key := range c.items {
+		if strings.HasPrefix(key, prefix) {
+			c.remove(key)
+			count++
+		}
+	}
+	return count
 }
 
 // Clear flushes all items from the cache.
@@ -81,6 +152,9 @@ func (c *Cache) Clear() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.items = make(map[string]*CacheEntry)
+	c.positions = make(map[string]*list.Element)
+	c.order.Init()
+	c.usedBytes = 0
 }
 
 // Stats returns the hits, misses, and hit ratio.

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "P1",
+    "title": "Consistent Hashing and Random Trees: Distributed Caching Protocols for Relieving Hot Spots on the World Wide Web",
+    "source": "https://people.csail.mit.edu/karger/Papers/web.pdf",
+    "doi": "10.1145/258533.258660",
+    "pages": 10,
+    "sha256": "ae8475052b99f391a910acc385d1e39412e087ad7c0143b60fa099291be724da",
+    "collectedOn": "2026-10-10"
+  },
+  {
+    "id": "P2",
+    "title": "Consistent Hashing with Bounded Loads",
+    "source": "https://arxiv.org/pdf/1608.01350",
+    "doi": "10.1137/1.9781611975031.39",
+    "pages": 37,
+    "sha256": "0aae73b825d9ed69c4cc12072ebf1d84df5aa7c7aa9320c2eb968f10f4b37d71",
+    "collectedOn": "2026-10-10"
+  },
+  {
+    "id": "P3",
+    "title": "Revisiting Consistent Hashing with Bounded Loads",
+    "source": "https://cdn.aaai.org/ojs/16517/16517-13-20011-1-2-20210518.pdf",
+    "doi": "10.1609/aaai.v35i5.16517",
+    "pages": 8,
+    "sha256": "49bc82a87b6018799e833480edb0c496c1f1c46c459827edc760175978da5f5b",
+    "collectedOn": "2026-10-10"
+  },
+  {
+    "id": "P4",
+    "title": "Cache-aware load balancing of data center applications",
+    "source": "https://storage.googleapis.com/gweb-research2023-media/pubtools/5018.pdf",
+    "doi": "10.14778/3311880.3311887",
+    "pages": 15,
+    "sha256": "00c93881285de6565d3e38ae35b5ac7828db04c951f75e14474abba2344260df",
+    "collectedOn": "2026-10-10"
+  },
+  {
+    "id": "P5",
+    "title": "Optimal Probabilistic Cache Stampede Prevention",
+    "source": "https://cseweb.ucsd.edu/~avattani/papers/cache_stampede.pdf",
+    "doi": "10.14778/2757807.2757813",
+    "pages": 12,
+    "sha256": "fb581a20b92946d001699bdcd5ab2b214f5e577b3da10527d429e9cff384e65b",
+    "collectedOn": "2026-10-10"
+  }
+]

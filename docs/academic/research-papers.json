@@ -1,0 +1,47 @@
+[
+  {
+    "id":"P1", "title":"Consistent Hashing and Random Trees: Distributed Caching Protocols for Relieving Hot Spots on the World Wide Web",
+    "authors":"David Karger, Eric Lehman, Tom Leighton, Matthew Levine, Daniel Lewin, Rina Panigrahy", "year":1997,
+    "venue":"STOC 1997, pp. 654-663", "doi":"10.1145/258533.258660",
+    "url":"https://people.csail.mit.edu/karger/Papers/web.pdf", "pdf":"https://people.csail.mit.edu/karger/Papers/web.pdf",
+    "finding":"Consistent hashing limits reassignment when the cache membership changes. The paper also develops random cache trees to relieve hot spots under explicit theoretical models.",
+    "limit":"Stable assignment alone does not split a very popular object's requests across servers. Its modeled guarantees are not a measured latency guarantee for this Go implementation.",
+    "application":"Use consistent hashing as the locality baseline. Measure request imbalance and key remapping separately from cache hit ratio. Compare it to deterministic round robin on identical traces."
+  },
+  {
+    "id":"P2", "title":"Consistent Hashing with Bounded Loads",
+    "authors":"Vahab Mirrokni, Mikkel Thorup, Morteza Zadimoghaddam", "year":2018,
+    "venue":"SODA 2018, pp. 587-604 (expanded arXiv preprint first uploaded in 2016)", "doi":"10.1137/1.9781611975031.39",
+    "url":"https://arxiv.org/abs/1608.01350", "pdf":"https://arxiv.org/pdf/1608.01350",
+    "finding":"The allocation algorithm bounds balls per bin by ceil(c*m/n), where c is greater than one. It studies the tradeoff between balance and movement as clients or servers change.",
+    "limit":"The bound concerns object/client allocation counts. Requests with unequal popularity, service times, and response sizes require another load model.",
+    "application":"Study how much locality to retain before redirecting a request. MiniCDN uses in-flight request counts with a slack threshold. This is an experimental heuristic inspired by the tradeoff, not an implementation of this theorem."
+  },
+  {
+    "id":"P3", "title":"Revisiting Consistent Hashing with Bounded Loads",
+    "authors":"John Chen, Benjamin Coleman, Anshumali Shrivastava", "year":2021,
+    "venue":"AAAI 35(5), pp. 3976-3983", "doi":"10.1609/aaai.v35i5.16517",
+    "url":"https://ojs.aaai.org/index.php/AAAI/article/view/16517", "pdf":"https://cdn.aaai.org/ojs/16517/16517-13-20011-1-2-20210518.pdf",
+    "finding":"The authors identify cascaded overflow in capacity-constrained hashing and propose a method using fast minwise hashing. Evaluation includes AOL search and Indiana University click traces.",
+    "limit":"The method's object placement and datasets differ from live HTTP request routing. A small synthetic demonstration cannot reproduce its empirical claims.",
+    "application":"Avoid assuming clockwise overflow always balances load. Record destination distribution and locality loss. Keep minwise object allocation as a separate future baseline rather than labeling our least-loaded fallback as this algorithm."
+  },
+  {
+    "id":"P4", "title":"Cache-aware load balancing of data center applications",
+    "authors":"Aaron Archer, Kevin Aydin, MohammadHossein Bateni, Vahab Mirrokni, Aaron Schild, Ray Yang, Richard Zhuang", "year":2019,
+    "venue":"Proceedings of the VLDB Endowment 12(6), pp. 709-723", "doi":"10.14778/3311880.3311887",
+    "url":"https://research.google/pubs/cache-aware-load-balancing-of-data-center-applications/", "pdf":"https://storage.googleapis.com/gweb-research2023-media/pubtools/5018.pdf",
+    "finding":"The Google search system combines query-term locality with load balancing through weighted voting, graph partitioning, and cache simulation. The production evaluation reports fewer cache misses and increased throughput.",
+    "limit":"A multi-term search query uses multiple cached posting lists. MiniCDN currently maps one HTTP resource per request, so directly transplanting the voting scheme would be unjustified.",
+    "application":"Evaluate cache locality together with request balance. Report origin attempts and latency beside per-edge request counts. A more even distribution may incur additional cold fills."
+  },
+  {
+    "id":"P5", "title":"Optimal Probabilistic Cache Stampede Prevention",
+    "authors":"Andrea Vattani, Flavio Chierichetti, Keegan Lowenstein", "year":2015,
+    "venue":"Proceedings of the VLDB Endowment 8(8), pp. 886-897", "doi":"10.14778/2757807.2757813",
+    "url":"https://cseweb.ucsd.edu/~avattani/papers/cache_stampede.pdf", "pdf":"https://cseweb.ucsd.edu/~avattani/papers/cache_stampede.pdf",
+    "finding":"The paper analyzes probabilistic early refresh to reduce stampedes around cache expiration, including dependence on regeneration time.",
+    "limit":"Early refresh differs from suppressing duplicate simultaneous cache fills. Extra refresh traffic must respect the origin's freshness rules and capacity.",
+    "application":"Use cache-fill coordination as an implemented baseline. Treat probabilistic early refresh as a later controlled experiment, measuring origin requests, user latency, and wasted refreshes. Do not claim current coordination implements this paper."
+  }
+]

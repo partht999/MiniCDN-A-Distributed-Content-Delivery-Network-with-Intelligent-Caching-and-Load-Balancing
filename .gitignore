@@ -1,0 +1,12 @@
+tmp/
+.chart-data-*/
+.codex-finalizer/
+sample-content/benchmark/
+sample-content/integration-test/
+docs/academic/papers/*.pdf
+docs/academic/papers/*.txt
+docs/academic/source-extracts/
+*.exe
+.env
+.env.*
+!.env.example

@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -23,7 +24,9 @@ type Node struct {
 }
 
 type PurgeRequest struct {
-	URLs []string `json:"urls"`
+	URLs       []string `json:"urls"`
+	Prefixes   []string `json:"prefixes"`
+	Generation int64    `json:"generation,omitempty"`
 }
 
 var (
@@ -103,8 +106,13 @@ func handleNodes(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		generation, generationErr := redisClient.Get(ctx, "purge:generation").Int64()
+		if generationErr != nil && generationErr != redis.Nil {
+			http.Error(w, "Unable to read purge generation", 500)
+			return
+		}
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]string{"status": "registered"})
+		json.NewEncoder(w).Encode(map[string]interface{}{"status": "registered", "purge_generation": generation})
 
 	case http.MethodGet:
 		nodes, err := getActiveNodes()
@@ -134,10 +142,23 @@ func handlePurge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(purgeReq.URLs) == 0 {
+	for _, prefix := range purgeReq.Prefixes {
+		if !strings.HasPrefix(prefix, "/") {
+			http.Error(w, "Prefixes must start with /", http.StatusBadRequest)
+			return
+		}
+	}
+	if len(purgeReq.URLs) == 0 && len(purgeReq.Prefixes) == 0 {
 		http.Error(w, "No URLs provided for purge", http.StatusBadRequest)
 		return
 	}
+	// Persist a conservative invalidation watermark before broadcasting.
+	generation, generationErr := redisClient.Incr(ctx, "purge:generation").Result()
+	if generationErr != nil {
+		http.Error(w, "Cannot persist invalidation", 500)
+		return
+	}
+	purgeReq.Generation = generation
 
 	nodes, err := getActiveNodes()
 	if err != nil {
@@ -164,7 +185,7 @@ func handlePurge(w http.ResponseWriter, r *http.Request) {
 		wg.Add(1)
 		go func(n Node) {
 			defer wg.Done()
-			success := purgeNode(n, purgeReq.URLs)
+			success := purgeNode(n, purgeReq)
 			mu.Lock()
 			if success {
 				results[n.ID] = "success"
@@ -176,10 +197,19 @@ func handlePurge(w http.ResponseWriter, r *http.Request) {
 	}
 
 	wg.Wait()
+	status := "completed"
+	for _, result := range results {
+		if result != "success" {
+			status = "partial_failure"
+		}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
+	if status == "partial_failure" {
+		w.WriteHeader(http.StatusBadGateway)
+	}
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":  "completed",
+		"status":  status,
 		"details": results,
 	})
 }
@@ -209,12 +239,12 @@ func getActiveNodes() ([]Node, error) {
 	return nodes, nil
 }
 
-func purgeNode(node Node, urls []string) bool {
+func purgeNode(node Node, purge PurgeRequest) bool {
 	// Send cache clear HTTP request to edge node
 	purgeURL := fmt.Sprintf("http://%s:%d/internal/purge", node.Host, node.Port)
-	log.Printf("Broadcasting purge request to %s: %v", purgeURL, urls)
+	log.Printf("Broadcasting purge request to %s", purgeURL)
 
-	reqBody, err := json.Marshal(PurgeRequest{URLs: urls})
+	reqBody, err := json.Marshal(purge)
 	if err != nil {
 		log.Printf("Error marshaling purge request for node %s: %v", node.ID, err)
 		return false

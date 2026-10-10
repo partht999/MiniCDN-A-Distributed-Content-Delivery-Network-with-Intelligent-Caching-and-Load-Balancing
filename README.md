@@ -1,6 +1,14 @@
-# Mini CDN — Full Project Plan
+# MiniCDN — prototype and project plan
+
+Current implementation and submission evidence (10 October 2026): [SRS and UML](docs/academic/design-and-srs.md), [five-paper review](docs/academic/research-review.md), [evaluation schedule and completion ledger](docs/academic/submission-plan.md), [routing comparison data](docs/academic/results/routing-comparison.csv), and [deployment guide](docs/hosting.md). The tested core includes three routing policies, bounded memory LRU, coalescing, conditional revalidation and missed-purge recovery. Disk caching and public hosting remain open.
+
+Current code review, research-gap explanations and provisional research phases: [research roadmap](docs/research-roadmap.md). The first cache-fill coordination increment passes the Go 1.21 container test suite, race detector and repeated cold-burst regression. The blueprint checkboxes below do not represent audited implementation status.
 
 A greenfield project: distributed content delivery with intelligent caching and load balancing. Below is a complete blueprint you can build from.
+
+For installed tool versions and repeatable test commands, see [local development](docs/development.md).
+
+For the team explanation of the USP, project motivation, changes and dashboard panels, see the [printable group brief](docs/MiniCDN-Group-Brief.html) and the newer academic reports. Run `node scripts/metrics-demo.mjs` to generate bounded local activity for the 13-panel Grafana dashboard at http://localhost:3000/d/minicdn-dashboard. The dashboard demo is not a load benchmark.
 
 ---
 
