@@ -1,0 +1,35 @@
+services:
+  prometheus:
+    volumes:
+      - ./configs/prometheus/experiments.yml:/etc/prometheus/prometheus.yml
+  origin:
+    environment:
+      - ORIGIN_DELAY_MS=20
+  edge-1:
+    environment:
+      - CACHE_MAX_BYTES=65536
+  edge-2:
+    environment:
+      - CACHE_MAX_BYTES=65536
+  edge-3:
+    environment:
+      - CACHE_MAX_BYTES=65536
+  router-rr:
+    build:
+      context: .
+      dockerfile: cmd/router/Dockerfile
+    environment:
+      - CONTROL_URL=http://control:7000
+      - ROUTING_MODE=round_robin
+    ports: ["8084:8080"]
+    depends_on: [control, edge-1, edge-2, edge-3]
+  router-adaptive:
+    build:
+      context: .
+      dockerfile: cmd/router/Dockerfile
+    environment:
+      - CONTROL_URL=http://control:7000
+      - ROUTING_MODE=adaptive
+      - ADAPTIVE_SLACK=2
+    ports: ["8085:8080"]
+    depends_on: [control, edge-1, edge-2, edge-3]

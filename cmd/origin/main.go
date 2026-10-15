@@ -14,11 +14,19 @@ import (
 )
 
 var (
-	contentDir = "./sample-content"
-	port       = "9000"
+	contentDir    = "./sample-content"
+	port          = "9000"
+	responseDelay time.Duration
 )
 
 func main() {
+	if value := os.Getenv("ORIGIN_DELAY_MS"); value != "" {
+		duration, err := time.ParseDuration(value + "ms")
+		if err != nil || duration < 0 {
+			log.Fatal("invalid ORIGIN_DELAY_MS")
+		}
+		responseDelay = duration
+	}
 	if dir := os.Getenv("CONTENT_DIR"); dir != "" {
 		contentDir = dir
 	}
@@ -36,6 +44,13 @@ func main() {
 }
 
 func fileHandler(w http.ResponseWriter, r *http.Request) {
+	if responseDelay > 0 {
+		select {
+		case <-r.Context().Done():
+			return
+		case <-time.After(responseDelay):
+		}
+	}
 	log.Printf("Origin received request: %s %s", r.Method, r.URL.Path)
 
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {

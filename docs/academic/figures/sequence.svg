@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="495" height="375" preserveAspectRatio="xMinYMin meet" viewBox="0 0 495 375" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>...</title>
+	<desc>...</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="495" height="375"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-375)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="1" y="330" width="68" height="35" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,96%,96%); fill-rule: evenodd;"/>
+			<text x="23.497999999999998" y="339" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,678) scale(1,-1)">Client</text>
+			<path d="M 35,325 L 35,15 Z" style="stroke: rgb(61%,70%,74%); stroke-linecap: butt; stroke-width: 0.6; stroke-dasharray: 3, 3;"/>
+			<rect x="86" y="330" width="68" height="35" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,96%,96%); fill-rule: evenodd;"/>
+			<text x="106.49549999999999" y="339" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,678) scale(1,-1)">Router</text>
+			<path d="M 120,325 L 120,15 Z" style="stroke: rgb(61%,70%,74%); stroke-linecap: butt; stroke-width: 0.6; stroke-dasharray: 3, 3;"/>
+			<rect x="171" y="330" width="68" height="35" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,96%,96%); fill-rule: evenodd;"/>
+			<text x="194.4925" y="339" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,678) scale(1,-1)">Edge</text>
+			<path d="M 205,325 L 205,15 Z" style="stroke: rgb(61%,70%,74%); stroke-linecap: butt; stroke-width: 0.6; stroke-dasharray: 3, 3;"/>
+			<rect x="256" y="330" width="68" height="35" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,96%,96%); fill-rule: evenodd;"/>
+			<text x="274.2455" y="339" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,678) scale(1,-1)">Fill gate</text>
+			<path d="M 290,325 L 290,15 Z" style="stroke: rgb(61%,70%,74%); stroke-linecap: butt; stroke-width: 0.6; stroke-dasharray: 3, 3;"/>
+			<rect x="341" y="330" width="68" height="35" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,96%,96%); fill-rule: evenodd;"/>
+			<text x="361.995" y="339" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,678) scale(1,-1)">Cache</text>
+			<path d="M 375,325 L 375,15 Z" style="stroke: rgb(61%,70%,74%); stroke-linecap: butt; stroke-width: 0.6; stroke-dasharray: 3, 3;"/>
+			<rect x="426" y="330" width="68" height="35" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,96%,96%); fill-rule: evenodd;"/>
+			<text x="447.9985" y="339" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,678) scale(1,-1)">Origin</text>
+			<path d="M 460,325 L 460,15 Z" style="stroke: rgb(61%,70%,74%); stroke-linecap: butt; stroke-width: 0.6; stroke-dasharray: 3, 3;"/>
+			<path d="M 35,315 L 120,315 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8;"/>
+			<polygon points="120 315, 114 318, 114 312" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<text x="58.716" y="321.0" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,642) scale(1,-1)">GET resource</text>
+			<path d="M 120,289 L 205,289 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8;"/>
+			<polygon points="205 289, 199 292, 199 286" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<text x="142.3545" y="295.0" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,590) scale(1,-1)">reserve / proxy</text>
+			<path d="M 205,263 L 375,263 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8;"/>
+			<polygon points="375 263, 369 266, 369 260" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<text x="264.797" y="269.0" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,538) scale(1,-1)">fresh lookup: miss</text>
+			<path d="M 205,237 L 290,237 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8;"/>
+			<polygon points="290 237, 284 240, 284 234" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<text x="224.8205" y="243.0" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,486) scale(1,-1)">acquire key gate</text>
+			<path d="M 205,211 L 375,211 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8;"/>
+			<polygon points="375 211, 369 214, 369 208" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<text x="271.608" y="217.0" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,434) scale(1,-1)">recheck: miss</text>
+			<path d="M 205,185 L 460,185 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8;"/>
+			<polygon points="460 185, 454 188, 454 182" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<text x="300.486" y="191.0" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,382) scale(1,-1)">GET / conditional GET</text>
+			<path d="M 460,159 L 205,159 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8; stroke-dasharray: 4, 3;"/>
+			<polygon points="205 159, 211 162, 211 156" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<text x="310.20550000000003" y="165.0" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,330) scale(1,-1)">200 body or 304</text>
+			<path d="M 205,133 L 375,133 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8;"/>
+			<polygon points="375 133, 369 136, 369 130" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<text x="271.993" y="139.0" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,278) scale(1,-1)">admit / renew</text>
+			<path d="M 205,107 L 290,107 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8;"/>
+			<polygon points="290 107, 284 110, 284 104" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<text x="231.2395" y="113.0" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,226) scale(1,-1)">release gate</text>
+			<path d="M 205,81 L 120,81 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8; stroke-dasharray: 4, 3;"/>
+			<polygon points="120 81, 126 84, 126 78" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<text x="138.6515" y="87.0" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,174) scale(1,-1)">content response</text>
+			<path d="M 120,55 L 35,55 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8; stroke-dasharray: 4, 3;"/>
+			<polygon points="35 55, 41 58, 41 52" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<text x="51.708999999999996" y="61.0" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,122) scale(1,-1)">release / response</text>
+			<text x="5" y="4" style="font-family: Helvetica; font-size: 8px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,8) scale(1,-1)">Cacheable GET miss path. Separate UML source contains alternative branches.</text>
+		</g>
+	</g>
+</svg>

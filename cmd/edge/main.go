@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"mini-cdn/pkg/cache"
@@ -19,12 +20,26 @@ import (
 )
 
 var (
-	nodeID     = "edge-1"
-	region     = "local"
-	originURL  = "http://localhost:9000"
-	controlURL = "http://localhost:7000"
-	port       = "8080"
-	cdnCache   *cache.Cache
+	nodeID              = "edge-1"
+	region              = "local"
+	originURL           = "http://localhost:9000"
+	controlURL          = "http://localhost:7000"
+	port                = "8080"
+	cdnCache            *cache.Cache
+	cacheFills          fillGroup
+	cacheOperations     sync.RWMutex
+	purgeGeneration     int64
+	coalescingEnabled         = true
+	maxObjectBytes      int64 = 4 * 1024 * 1024
+	originClient              = &http.Client{Timeout: 10 * time.Second}
+	originRequestsTotal       = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "cdn_origin_requests_total",
+		Help: "Origin HTTP attempts, including misses and bypasses.",
+	}, []string{"node_id"})
+	coalescedRequestsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "cdn_coalesced_requests_total",
+		Help: "Initial misses served from a cache filled by another request.",
+	}, []string{"node_id"})
 
 	httpRequestsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -35,8 +50,8 @@ var (
 	)
 	httpRequestDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name: "http_request_duration_seconds",
-			Help: "Latency of HTTP requests in seconds.",
+			Name:    "http_request_duration_seconds",
+			Help:    "Latency of HTTP requests in seconds.",
 			Buckets: prometheus.DefBuckets,
 		},
 		[]string{"node_id", "path", "method"},
@@ -95,7 +110,9 @@ type Node struct {
 }
 
 type PurgeRequest struct {
-	URLs []string `json:"urls"`
+	URLs       []string `json:"urls"`
+	Prefixes   []string `json:"prefixes"`
+	Generation int64    `json:"generation,omitempty"`
 }
 
 func main() {
@@ -115,15 +132,34 @@ func main() {
 		port = p
 	}
 
-	cdnCache = cache.NewCache()
+	capacity := int64(64 * 1024 * 1024)
+	if value := os.Getenv("CACHE_MAX_BYTES"); value != "" {
+		n, err := strconv.ParseInt(value, 10, 64)
+		if err != nil || n <= 0 {
+			log.Fatal("CACHE_MAX_BYTES must be positive")
+		}
+		capacity = n
+	}
+	if value := os.Getenv("CACHE_MAX_OBJECT_BYTES"); value != "" {
+		n, err := strconv.ParseInt(value, 10, 64)
+		if err != nil || n <= 0 {
+			log.Fatal("CACHE_MAX_OBJECT_BYTES must be positive")
+		}
+		maxObjectBytes = n
+	}
+	cdnCache = cache.NewBoundedCache(capacity)
+	prometheus.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{Name: "cache_body_bytes", Help: "Cached response-body bytes (metadata excluded).", ConstLabels: prometheus.Labels{"node_id": nodeID}}, func() float64 { n, _ := cdnCache.Usage(); return float64(n) }))
+	prometheus.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{Name: "cache_evictions_total", Help: "Cumulative capacity evictions.", ConstLabels: prometheus.Labels{"node_id": nodeID}}, func() float64 { _, n := cdnCache.Usage(); return float64(n) }))
+	coalescingEnabled = os.Getenv("COALESCING_ENABLED") != "false"
 
 	// Register Prometheus metrics
 	prometheus.MustRegister(httpRequestsTotal)
+	prometheus.MustRegister(originRequestsTotal, coalescedRequestsTotal)
 	prometheus.MustRegister(httpRequestDuration)
 	prometheus.MustRegister(prometheus.NewGaugeFunc(
 		prometheus.GaugeOpts{
-			Name: "cache_size_items",
-			Help: "Number of active items in the local cache.",
+			Name:        "cache_size_items",
+			Help:        "Number of active items in the local cache.",
 			ConstLabels: prometheus.Labels{"node_id": nodeID},
 		},
 		func() float64 {
@@ -182,7 +218,22 @@ func registerWithControl() {
 		log.Printf("Heartbeat: registration failed to %s: %v", regURL, err)
 		return
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		return
+	}
+	var acknowledgement struct {
+		Generation int64 `json:"purge_generation"`
+	}
+	if json.NewDecoder(resp.Body).Decode(&acknowledgement) != nil {
+		return
+	}
+	cacheOperations.Lock()
+	if acknowledgement.Generation > purgeGeneration {
+		cdnCache.Clear()
+		purgeGeneration = acknowledgement.Generation
+	}
+	cacheOperations.Unlock()
 }
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -213,10 +264,36 @@ func handlePurge(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
+	for _, prefix := range purgeReq.Prefixes {
+		if !strings.HasPrefix(prefix, "/") {
+			http.Error(w, "Prefixes must start with /", http.StatusBadRequest)
+			return
+		}
+	}
+	cacheOperations.Lock()
+	defer cacheOperations.Unlock()
+	// A skipped generation represents invalidations whose keys are unknown.
+	if purgeReq.Generation > purgeGeneration+1 {
+		cdnCache.Clear()
+	}
 
 	for _, url := range purgeReq.URLs {
+		// Wait for an earlier fill before deleting, preventing that fill from
+		// repopulating this exact key after purge acknowledgement.
+		release, err := cacheFills.acquire(r.Context(), url)
+		if err != nil {
+			http.Error(w, "Purge canceled before completion", http.StatusRequestTimeout)
+			return
+		}
 		log.Printf("[%s] Evicting from cache: %s", nodeID, url)
 		cdnCache.Delete(url)
+		release()
+	}
+	for _, prefix := range purgeReq.Prefixes {
+		cdnCache.DeletePrefix(prefix)
+	}
+	if purgeReq.Generation > purgeGeneration {
+		purgeGeneration = purgeReq.Generation
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -224,6 +301,16 @@ func handlePurge(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleProxy(w http.ResponseWriter, r *http.Request) {
+	cacheOperations.RLock()
+	defer cacheOperations.RUnlock()
+	// Personalized, range, and explicit refresh requests bypass shared caching.
+	if r.Header.Get("Authorization") != "" || r.Header.Get("Cookie") != "" ||
+		r.Header.Get("Range") != "" || r.Header.Get("Cache-Control") != "" {
+		w.Header().Set("X-Cache", "BYPASS")
+		w.Header().Set("X-Edge-Node", nodeID)
+		proxyToOriginDirect(w, r)
+		return
+	}
 	// Let's only handle GET and HEAD requests for caching
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		log.Printf("[%s] Method not allowed for caching proxy: %s", nodeID, r.Method)
@@ -246,11 +333,29 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 2. Cache MISS -> Fetch from Origin
+	releaseFill := func() {}
+	if r.Method == http.MethodGet && coalescingEnabled {
+		release, err := cacheFills.acquire(r.Context(), cacheKey)
+		if err != nil {
+			return
+		}
+		defer release()
+		releaseFill = release
+		if entry, hit := cdnCache.Peek(cacheKey); hit {
+			coalescedRequestsTotal.WithLabelValues(nodeID).Inc()
+			serveCachedEntry(w, r, entry)
+			return
+		}
+	}
 	log.Printf("[%s] Cache MISS for key: %s", nodeID, cacheKey)
-	fetchAndStoreFromOrigin(w, r, cacheKey)
+	fetchAndStoreFromOrigin(w, r, cacheKey, releaseFill)
 }
 
 func serveCachedEntry(w http.ResponseWriter, r *http.Request, entry *cache.CacheEntry) {
+	serveCachedWithStatus(w, r, entry, "HIT")
+}
+
+func serveCachedWithStatus(w http.ResponseWriter, r *http.Request, entry *cache.CacheEntry, cacheStatus string) {
 	// Set cached headers
 	for k, vv := range entry.Header {
 		for _, v := range vv {
@@ -259,7 +364,7 @@ func serveCachedEntry(w http.ResponseWriter, r *http.Request, entry *cache.Cache
 	}
 
 	// Identify Cache node and Hit status
-	w.Header().Set("X-Cache", "HIT")
+	w.Header().Set("X-Cache", cacheStatus)
 	w.Header().Set("X-Edge-Node", nodeID)
 
 	// Evaluate client-side conditional headers
@@ -272,7 +377,7 @@ func serveCachedEntry(w http.ResponseWriter, r *http.Request, entry *cache.Cache
 
 	ifModifiedSinceHeader := r.Header.Get("If-Modified-Since")
 	lastModifiedHeader := entry.Header.Get("Last-Modified")
-	if ifModifiedSinceHeader != "" && lastModifiedHeader != "" {
+	if ifNoneMatch == "" && ifModifiedSinceHeader != "" && lastModifiedHeader != "" {
 		if tClient, err1 := time.Parse(http.TimeFormat, ifModifiedSinceHeader); err1 == nil {
 			if tMod, err2 := time.Parse(http.TimeFormat, lastModifiedHeader); err2 == nil {
 				if !tMod.After(tClient) {
@@ -289,7 +394,7 @@ func serveCachedEntry(w http.ResponseWriter, r *http.Request, entry *cache.Cache
 	}
 }
 
-func fetchAndStoreFromOrigin(w http.ResponseWriter, r *http.Request, cacheKey string) {
+func fetchAndStoreFromOrigin(w http.ResponseWriter, r *http.Request, cacheKey string, releaseFill func()) {
 	originRequestURL := fmt.Sprintf("%s%s", originURL, r.URL.Path)
 	if r.URL.RawQuery != "" {
 		originRequestURL = fmt.Sprintf("%s?%s", originRequestURL, r.URL.RawQuery)
@@ -297,7 +402,7 @@ func fetchAndStoreFromOrigin(w http.ResponseWriter, r *http.Request, cacheKey st
 
 	log.Printf("[%s] Fetching from Origin: %s", nodeID, originRequestURL)
 
-	req, err := http.NewRequest(r.Method, originRequestURL, nil)
+	req, err := http.NewRequestWithContext(r.Context(), r.Method, originRequestURL, nil)
 	if err != nil {
 		log.Printf("[%s] Failed to create origin request: %v", nodeID, err)
 		http.Error(w, "Proxy Error", http.StatusInternalServerError)
@@ -314,16 +419,40 @@ func fetchAndStoreFromOrigin(w http.ResponseWriter, r *http.Request, cacheKey st
 		}
 	}
 
-	client := http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	stale, hasStale := cdnCache.Stale(cacheKey)
+	if hasStale && r.Method == http.MethodGet {
+		req.Header.Del("If-None-Match")
+		req.Header.Del("If-Modified-Since")
+		if etag := stale.Header.Get("ETag"); etag != "" {
+			req.Header.Set("If-None-Match", etag)
+		} else if modified := stale.Header.Get("Last-Modified"); modified != "" {
+			req.Header.Set("If-Modified-Since", modified)
+		}
+	}
+	originRequestsTotal.WithLabelValues(nodeID).Inc()
+	resp, err := originClient.Do(req)
 	if err != nil {
 		log.Printf("[%s] Error fetching from origin: %v", nodeID, err)
 		http.Error(w, "Origin Unreachable", http.StatusBadGateway)
 		return
 	}
 	defer resp.Body.Close()
+	if hasStale && r.Method == http.MethodGet && resp.StatusCode == http.StatusNotModified && (req.Header.Get("If-None-Match") != "" || req.Header.Get("If-Modified-Since") != "") {
+		headers := stale.Header.Clone()
+		for key, values := range resp.Header {
+			headers[key] = append([]string(nil), values...)
+		}
+		entry := &cache.CacheEntry{StatusCode: stale.StatusCode, Body: stale.Body, Header: headers}
+		cdnCache.Delete(cacheKey)
+		if headers.Get("Vary") == "" && headers.Get("Set-Cookie") == "" {
+			cdnCache.Set(cacheKey, entry.StatusCode, entry.Body, headers, parseCacheControl(headers.Get("Cache-Control")))
+		}
+		releaseFill()
+		serveCachedWithStatus(w, r, entry, "REVALIDATED")
+		return
+	}
 
-	bodyBytes, err := io.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, maxObjectBytes+1))
 	if err != nil {
 		log.Printf("[%s] Error reading origin response body: %v", nodeID, err)
 		http.Error(w, "Origin Read Error", http.StatusInternalServerError)
@@ -339,19 +468,27 @@ func fetchAndStoreFromOrigin(w http.ResponseWriter, r *http.Request, cacheKey st
 	w.Header().Set("X-Cache", "MISS")
 	w.Header().Set("X-Edge-Node", nodeID)
 
-	w.WriteHeader(resp.StatusCode)
-	if r.Method == http.MethodGet {
-		w.Write(bodyBytes)
-	}
-
 	// Caching decision: only cache successful GET responses with positive TTL
-	if r.Method == http.MethodGet && resp.StatusCode == http.StatusOK {
+	if r.Method == http.MethodGet && resp.StatusCode == http.StatusOK &&
+		int64(len(bodyBytes)) <= maxObjectBytes && resp.Header.Get("Vary") == "" && resp.Header.Get("Set-Cookie") == "" {
 		ttl := parseCacheControl(resp.Header.Get("Cache-Control"))
 		if ttl > 0 {
 			log.Printf("[%s] Caching key: %s with TTL: %v", nodeID, cacheKey, ttl)
 			cdnCache.Set(cacheKey, resp.StatusCode, bodyBytes, resp.Header, ttl)
 		} else {
+			cdnCache.Delete(cacheKey)
 			log.Printf("[%s] Skipping cache for key: %s (TTL: %v)", nodeID, cacheKey, ttl)
+		}
+	} else if hasStale {
+		cdnCache.Delete(cacheKey)
+	}
+	// Publish the fill before writing to a potentially slow client.
+	releaseFill()
+	w.WriteHeader(resp.StatusCode)
+	if r.Method == http.MethodGet {
+		w.Write(bodyBytes)
+		if int64(len(bodyBytes)) > maxObjectBytes {
+			io.Copy(w, resp.Body)
 		}
 	}
 }
@@ -362,7 +499,7 @@ func proxyToOriginDirect(w http.ResponseWriter, r *http.Request) {
 		originRequestURL = fmt.Sprintf("%s?%s", originRequestURL, r.URL.RawQuery)
 	}
 
-	req, err := http.NewRequest(r.Method, originRequestURL, r.Body)
+	req, err := http.NewRequestWithContext(r.Context(), r.Method, originRequestURL, r.Body)
 	if err != nil {
 		http.Error(w, "Proxy Error", http.StatusInternalServerError)
 		return
@@ -375,6 +512,7 @@ func proxyToOriginDirect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := http.Client{Timeout: 30 * time.Second}
+	originRequestsTotal.WithLabelValues(nodeID).Inc()
 	resp, err := client.Do(req)
 	if err != nil {
 		http.Error(w, "Origin Unreachable", http.StatusBadGateway)
@@ -401,21 +539,25 @@ func parseCacheControl(headerVal string) time.Duration {
 	parts := strings.Split(headerVal, ",")
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
-		if part == "no-cache" || part == "no-store" || part == "private" {
+		directive := strings.ToLower(strings.TrimSpace(strings.SplitN(part, "=", 2)[0]))
+		if directive == "no-cache" || directive == "no-store" || directive == "private" {
 			return 0 // Do not cache
 		}
 	}
 
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-		if strings.HasPrefix(part, "max-age=") {
-			secondsStr := strings.TrimPrefix(part, "max-age=")
-			seconds, err := strconv.Atoi(secondsStr)
-			if err == nil {
-				if seconds <= 0 {
-					return 0
+	for _, directive := range []string{"s-maxage", "max-age"} {
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+			keyValue := strings.SplitN(part, "=", 2)
+			if len(keyValue) == 2 && strings.EqualFold(strings.TrimSpace(keyValue[0]), directive) {
+				secondsStr := strings.Trim(strings.TrimSpace(keyValue[1]), "\"")
+				seconds, err := strconv.Atoi(secondsStr)
+				if err == nil {
+					if seconds <= 0 {
+						return 0
+					}
+					return time.Duration(seconds) * time.Second
 				}
-				return time.Duration(seconds) * time.Second
 			}
 		}
 	}

@@ -1,0 +1,76 @@
+name: minicdn
+services:
+  origin:
+    build: { context: .., dockerfile: cmd/origin/Dockerfile }
+    volumes: ["../sample-content:/sample-content:ro"]
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: ["redis-data:/data"]
+    restart: unless-stopped
+  control:
+    build: { context: .., dockerfile: cmd/control/Dockerfile }
+    environment: ["REDIS_URL=redis://redis:6379"]
+    depends_on: [redis]
+    restart: unless-stopped
+  edge-1: &edge
+    build: { context: .., dockerfile: cmd/edge/Dockerfile }
+    environment:
+      NODE_ID: edge-1
+      ORIGIN_URL: http://origin:9000
+      CONTROL_URL: http://control:7000
+      CACHE_MAX_BYTES: 67108864
+    depends_on: [origin, control]
+    restart: unless-stopped
+  edge-2:
+    <<: *edge
+    environment:
+      NODE_ID: edge-2
+      ORIGIN_URL: http://origin:9000
+      CONTROL_URL: http://control:7000
+      CACHE_MAX_BYTES: 67108864
+  edge-3:
+    <<: *edge
+    environment:
+      NODE_ID: edge-3
+      ORIGIN_URL: http://origin:9000
+      CONTROL_URL: http://control:7000
+      CACHE_MAX_BYTES: 67108864
+  router:
+    build: { context: .., dockerfile: cmd/router/Dockerfile }
+    environment: ["CONTROL_URL=http://control:7000", "ROUTING_MODE=consistent_hash"]
+    depends_on: [control, edge-1, edge-2, edge-3]
+    ports: ["127.0.0.1:8080:8080"]
+    restart: unless-stopped
+  prometheus:
+    image: prom/prometheus:latest
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=7d"]
+    volumes: ["../configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro", "prometheus-data:/prometheus"]
+    depends_on: [router, edge-1, edge-2, edge-3]
+    restart: unless-stopped
+  grafana:
+    image: grafana/grafana-oss:latest
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set a unique Grafana password in deployment/.env}
+      GF_SERVER_ROOT_URL: https://${GRAFANA_DOMAIN:?Set GRAFANA_DOMAIN}/
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SECURITY_COOKIE_SECURE: "true"
+    volumes: ["../configs/grafana/provisioning:/etc/grafana/provisioning:ro", "grafana-data:/var/lib/grafana"]
+    depends_on: [prometheus]
+    restart: unless-stopped
+  caddy:
+    image: caddy:2-alpine
+    ports: ["80:80", "443:443"]
+    environment:
+      GRAFANA_DOMAIN: ${GRAFANA_DOMAIN:?Set GRAFANA_DOMAIN}
+    volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro", "caddy-data:/data", "caddy-config:/config"]
+    depends_on: [grafana]
+    restart: unless-stopped
+volumes:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+  caddy-data:
+  caddy-config:

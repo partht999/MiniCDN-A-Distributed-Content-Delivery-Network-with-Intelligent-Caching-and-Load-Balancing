@@ -1,0 +1,12 @@
+.git
+tmp
+.chart-data-*
+.codex-finalizer
+.env
+.env.*
+deployment/.env
+output
+docs
+node_modules
+*.exe
+sample-content/benchmark

@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 2s
+  evaluation_interval: 2s
+scrape_configs:
+  - job_name: mini-cdn-router
+    static_configs:
+      - targets: ["router:8080", "router-rr:8080", "router-adaptive:8080"]
+  - job_name: mini-cdn-edges
+    static_configs:
+      - targets: ["edge-1:8080", "edge-2:8080", "edge-3:8080"]

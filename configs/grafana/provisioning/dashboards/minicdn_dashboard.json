@@ -2,7 +2,10 @@
   "id": null,
   "uid": "minicdn-dashboard",
   "title": "Mini CDN Overview",
-  "tags": ["cdn", "prometheus"],
+  "tags": [
+    "cdn",
+    "prometheus"
+  ],
   "style": "dark",
   "timezone": "browser",
   "editable": true,
@@ -23,9 +26,9 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "Prometheus"
+            "uid": "PBFA97CFB590B2093"
           },
-          "expr": "(sum(rate(http_requests_total{cache_status=\"HIT\"}[1m])) or vector(0)) / (sum(rate(http_requests_total[1m])) or vector(0.000001)) * 100",
+          "expr": "(sum(rate(http_requests_total{job=\"mini-cdn-edges\",path!~\"/health|/internal/.*\",cache_status=\"HIT\"}[1m])) or vector(0)) / clamp_min((sum(rate(http_requests_total{job=\"mini-cdn-edges\",path!~\"/health|/internal/.*\"}[1m])) or vector(0)), 0.000001) * 100",
           "refId": "A",
           "legendFormat": "Hit Ratio"
         }
@@ -38,12 +41,26 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "orange", "value": 50 },
-              { "color": "green", "value": 80 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 50
+              },
+              {
+                "color": "green",
+                "value": 80
+              }
             ]
           }
         }
+      },
+      "description": "Content-response HIT percentage over the last minute. Health and purge traffic are excluded. Coalesced followers count as HIT; idle windows show zero.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
       }
     },
     {
@@ -60,9 +77,9 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "Prometheus"
+            "uid": "PBFA97CFB590B2093"
           },
-          "expr": "router_active_nodes",
+          "expr": "max(router_active_nodes)",
           "refId": "A"
         }
       ],
@@ -74,13 +91,27 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "orange", "value": 1 },
-              { "color": "green", "value": 3 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": 3
+              }
             ]
           }
         }
-      }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "description": "Healthy edge count (maximum across policy routers, not their sum)."
     },
     {
       "type": "bargauge",
@@ -88,17 +119,17 @@
       "id": 3,
       "gridPos": {
         "h": 6,
-        "w": 12,
-        "x": 12,
-        "y": 0
+        "w": 24,
+        "x": 0,
+        "y": 6
       },
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "Prometheus"
+            "uid": "PBFA97CFB590B2093"
           },
-          "expr": "cache_size_items",
+          "expr": "cache_size_items{job=\"mini-cdn-edges\"}",
           "refId": "A",
           "legendFormat": "{{node_id}}"
         }
@@ -106,6 +137,11 @@
       "options": {
         "orientation": "horizontal",
         "displayMode": "basic"
+      },
+      "description": "Stored entries per edge, not bytes. Expired entries can remain until looked up.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
       }
     },
     {
@@ -116,19 +152,24 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 6
+        "y": 12
       },
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "Prometheus"
+            "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum(rate(http_requests_total[10s])) by (node_id)",
+          "expr": "sum by (node_id) (rate(http_requests_total{job=\"mini-cdn-edges\",path!~\"/health|/internal/.*\"}[1m]))",
           "refId": "A",
           "legendFormat": "{{node_id}}"
         }
-      ]
+      ],
+      "description": "Content requests per second, averaged over one minute. Hash ownership can make small workloads uneven.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      }
     },
     {
       "type": "timeseries",
@@ -138,19 +179,287 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 6
+        "y": 12
       },
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "Prometheus"
+            "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum(rate(http_requests_total[10s])) by (cache_status)",
+          "expr": "sum by (cache_status) (rate(http_requests_total{job=\"mini-cdn-edges\",path!~\"/health|/internal/.*\"}[1m]))",
           "refId": "A",
           "legendFormat": "{{cache_status}}"
         }
-      ]
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      }
+    },
+    {
+      "id": 6,
+      "title": "Origin fetches since edge start",
+      "type": "stat",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "expr": "sum(cdn_origin_requests_total{job=\"mini-cdn-edges\"}) or vector(0)",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "description": "Origin fetch operations, including misses and bypasses. Counters reset when an edge restarts.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Coalesced requests since edge start",
+      "type": "stat",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "expr": "sum(cdn_coalesced_requests_total{job=\"mini-cdn-edges\"}) or vector(0)",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "description": "Initial misses reused a cache filled by another request. Buffered coordination only; counters reset on edge restart.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Estimated edge P95 latency",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le,node_id) (rate(http_request_duration_seconds_bucket{job=\"mini-cdn-edges\",path!~\"/health|/internal/.*\"}[1m])))",
+          "refId": "A",
+          "legendFormat": "{{node_id}}"
+        }
+      ],
+      "description": "Estimated P95 from histogram buckets at the edge. Excludes health and purge; does not include the full client-to-router round trip. Idle nodes have no percentile.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Content responses since edge start",
+      "type": "bargauge",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "expr": "sum by (cache_status) (http_requests_total{job=\"mini-cdn-edges\",path!~\"/health|/internal/.*\"})",
+          "refId": "A",
+          "legendFormat": "{{cache_status}}",
+          "instant": true
+        }
+      ],
+      "description": "Cumulative content responses by cache status. Useful after a short demo when request rates return to zero.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Cached response-body bytes",
+      "id": 10,
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "expr": "cache_body_bytes{job=\"mini-cdn-edges\"}",
+          "refId": "A",
+          "legendFormat": "{{node_id}}"
+        }
+      ],
+      "description": "Content requests per second, averaged over one minute. Hash ownership can make small workloads uneven.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Capacity evictions per second",
+      "id": 11,
+      "gridPos": {
+        "x": 12,
+        "y": 28,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "expr": "rate(cache_evictions_total{job=\"mini-cdn-edges\"}[1m])",
+          "refId": "A",
+          "legendFormat": "{{node_id}}"
+        }
+      ],
+      "description": "Content requests per second, averaged over one minute. Hash ownership can make small workloads uneven.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Routing policy requests per second",
+      "id": 12,
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "expr": "sum by (routing_mode) (rate(router_requests_total{path!~\"/health|/metrics\"}[1m]))",
+          "refId": "A",
+          "legendFormat": "{{routing_mode}}"
+        }
+      ],
+      "description": "Content requests per second, averaged over one minute. Hash ownership can make small workloads uneven.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Router in-flight requests per edge",
+      "id": 13,
+      "gridPos": {
+        "x": 12,
+        "y": 36,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "expr": "router_inflight_requests{job=\"mini-cdn-router\"}",
+          "refId": "A",
+          "legendFormat": "{{instance}} / {{node_id}}"
+        }
+      ],
+      "description": "Content requests per second, averaged over one minute. Hash ownership can make small workloads uneven.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
     }
   ],
   "refresh": "5s",
@@ -158,5 +467,6 @@
   "time": {
     "from": "now-5m",
     "to": "now"
-  }
+  },
+  "version": 3
 }

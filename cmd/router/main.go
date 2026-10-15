@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -26,8 +28,17 @@ type Node struct {
 }
 
 var (
-	controlURL   = "http://localhost:7000"
-	port         = "8080"
+	controlURL    = "http://localhost:7000"
+	port          = "8080"
+	routingMode   = "consistent_hash"
+	adaptiveSlack = 2
+	routeSelector selector
+	proxyClient   = &http.Client{Timeout: 12 * time.Second, Transport: &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		DialContext:           (&net.Dialer{Timeout: 500 * time.Millisecond, KeepAlive: 30 * time.Second}).DialContext,
+		ResponseHeaderTimeout: 1500 * time.Millisecond,
+		MaxIdleConns:          256, MaxIdleConnsPerHost: 64, IdleConnTimeout: 90 * time.Second,
+	}}
 	hashRing     *hash.Ring
 	nodesMap     = make(map[string]Node)
 	healthyNodes = make(map[string]bool)
@@ -38,7 +49,7 @@ var (
 			Name: "router_requests_total",
 			Help: "Number of requests routed by the smart router.",
 		},
-		[]string{"path", "method", "status", "target_node"},
+		[]string{"path", "method", "status", "target_node", "routing_mode"},
 	)
 )
 
@@ -77,11 +88,24 @@ func metricsMiddleware(next http.Handler) http.Handler {
 		method := r.Method
 		statusStr := strconv.Itoa(sw.status)
 
-		routerRequestsTotal.WithLabelValues(path, method, statusStr, targetNode).Inc()
+		routerRequestsTotal.WithLabelValues(path, method, statusStr, targetNode, routingMode).Inc()
 	})
 }
 
 func main() {
+	if mode := os.Getenv("ROUTING_MODE"); mode != "" {
+		routingMode = mode
+	}
+	if routingMode != "consistent_hash" && routingMode != "round_robin" && routingMode != "adaptive" {
+		log.Fatal("ROUTING_MODE must be consistent_hash, round_robin or adaptive")
+	}
+	if value := os.Getenv("ADAPTIVE_SLACK"); value != "" {
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 {
+			log.Fatal("ADAPTIVE_SLACK must be nonnegative")
+		}
+		adaptiveSlack = n
+	}
 	if ctrl := os.Getenv("CONTROL_URL"); ctrl != "" {
 		controlURL = ctrl
 	}
@@ -94,6 +118,7 @@ func main() {
 
 	// Register Prometheus metrics
 	prometheus.MustRegister(routerRequestsTotal)
+	prometheus.MustRegister(&routeSelector)
 	prometheus.MustRegister(prometheus.NewGaugeFunc(
 		prometheus.GaugeOpts{
 			Name: "router_active_nodes",
@@ -119,6 +144,10 @@ func main() {
 	go startDiscoveryAndHealthChecks()
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok", "routing_mode": routingMode})
+	})
 	mux.HandleFunc("/", handleRoute)
 	mux.Handle("/metrics", promhttp.Handler())
 
@@ -131,20 +160,23 @@ func startDiscoveryAndHealthChecks() {
 	// Sync and check health immediately, then every 4 seconds
 	for {
 		syncNodesAndCheckHealth()
-		time.Sleep(4 * time.Second)
+		time.Sleep(time.Second)
 	}
 }
 
 func syncNodesAndCheckHealth() {
 	// 1. Fetch nodes from control plane registry
 	nodesURL := fmt.Sprintf("%s/api/v1/nodes", controlURL)
-	client := http.Client{Timeout: 3 * time.Second}
+	client := http.Client{Timeout: time.Second}
 	resp, err := client.Get(nodesURL)
 	if err != nil {
 		log.Printf("Discovery error: failed to fetch nodes from control plane: %v", err)
 		return
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return
+	}
 
 	var nodes []Node
 	if err := json.NewDecoder(resp.Body).Decode(&nodes); err != nil {
@@ -152,34 +184,44 @@ func syncNodesAndCheckHealth() {
 		return
 	}
 
-	nodesMu.Lock()
-	defer nodesMu.Unlock()
-
 	// Track newly discovered nodes and update configuration
 	newNodesMap := make(map[string]Node)
 	for _, n := range nodes {
 		newNodesMap[n.ID] = n
 	}
-	nodesMap = newNodesMap
+	newHealthy := make(map[string]bool)
 
 	// 2. Perform direct health checks on each node
 	var activeNodeIDs []string
-	for id, node := range nodesMap {
-		healthURL := fmt.Sprintf("http://%s:%d/health", node.Host, node.Port)
-		hResp, hErr := client.Get(healthURL)
-		if hErr == nil && hResp.StatusCode == http.StatusOK {
-			hResp.Body.Close()
-			healthyNodes[id] = true
-			activeNodeIDs = append(activeNodeIDs, id)
-			log.Printf("Node %s is HEALTHY", id)
-		} else {
-			if hErr == nil {
+	var checkMu sync.Mutex
+	var checks sync.WaitGroup
+	for id, node := range newNodesMap {
+		checks.Add(1)
+		go func(id string, node Node) {
+			defer checks.Done()
+			healthURL := fmt.Sprintf("http://%s:%d/health", node.Host, node.Port)
+			hResp, hErr := client.Get(healthURL)
+			if hErr == nil && hResp.StatusCode == http.StatusOK {
 				hResp.Body.Close()
+				checkMu.Lock()
+				newHealthy[id] = true
+				activeNodeIDs = append(activeNodeIDs, id)
+				checkMu.Unlock()
+				log.Printf("Node %s is HEALTHY", id)
+			} else {
+				if hErr == nil {
+					hResp.Body.Close()
+				}
+				log.Printf("Node %s is UNHEALTHY or unreachable: %v", id, hErr)
 			}
-			healthyNodes[id] = false
-			log.Printf("Node %s is UNHEALTHY or unreachable: %v", id, hErr)
-		}
+		}(id, node)
 	}
+	checks.Wait()
+	sort.Strings(activeNodeIDs)
+	nodesMu.Lock()
+	defer nodesMu.Unlock()
+	nodesMap = newNodesMap
+	healthyNodes = newHealthy
 
 	// 3. Rebuild consistent hash ring with healthy nodes only
 	hashRing.SetNodes(activeNodeIDs)
@@ -188,8 +230,19 @@ func syncNodesAndCheckHealth() {
 func handleRoute(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Router received request: %s %s", r.Method, r.URL.Path)
 
-	hashKey := r.URL.Path
-	candidates := hashRing.GetCandidates(hashKey)
+	nodesMu.RLock()
+	candidates := hashRing.GetCandidates(r.URL.RequestURI())
+	available := make(map[string]Node)
+	filtered := candidates[:0]
+	for _, id := range candidates {
+		if healthyNodes[id] {
+			available[id] = nodesMap[id]
+			filtered = append(filtered, id)
+		}
+	}
+	nodesMu.RUnlock()
+	candidates, release := routeSelector.reserve(routingMode, filtered, adaptiveSlack)
+	defer release()
 
 	if len(candidates) == 0 {
 		log.Println("Router warning: no healthy edge nodes available in the hash ring")
@@ -197,34 +250,34 @@ func handleRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nodesMu.RLock()
-	defer nodesMu.RUnlock()
-
 	var success bool
-	for _, nodeID := range candidates {
-		// Verify node is healthy and exists
-		if !healthyNodes[nodeID] {
-			continue
+	for index, nodeID := range candidates {
+		attemptRelease := release
+		if index > 0 {
+			_, attemptRelease = routeSelector.reserve("consistent_hash", []string{nodeID}, 0)
 		}
-		node, ok := nodesMap[nodeID]
+		// Verify node is healthy and exists
+		node, ok := available[nodeID]
 		if !ok {
 			continue
 		}
 
-		log.Printf("Routing request %s to node %s", r.URL.Path, nodeID)
+		w.Header().Set("X-Routing-Mode", routingMode)
 		err := proxyToNode(w, r, node)
+		attemptRelease()
 		if err == nil {
 			success = true
 			break
 		}
 
 		log.Printf("Router error: failed to proxy to node %s: %v. Trying next node on hash ring...", nodeID, err)
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			break
+		}
 		// Mark node unhealthy locally immediately so next requests bypass it before the next cron poll
-		nodesMu.RUnlock()
 		nodesMu.Lock()
 		healthyNodes[nodeID] = false
 		nodesMu.Unlock()
-		nodesMu.RLock()
 	}
 
 	if !success {
@@ -239,7 +292,7 @@ func proxyToNode(w http.ResponseWriter, r *http.Request, node Node) error {
 		destURL = fmt.Sprintf("%s?%s", destURL, r.URL.RawQuery)
 	}
 
-	req, err := http.NewRequest(r.Method, destURL, r.Body)
+	req, err := http.NewRequestWithContext(r.Context(), r.Method, destURL, r.Body)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -252,8 +305,7 @@ func proxyToNode(w http.ResponseWriter, r *http.Request, node Node) error {
 	}
 
 	// Use short timeout for proxying to enable quick failover
-	client := http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := proxyClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("connection error: %w", err)
 	}
@@ -267,6 +319,11 @@ func proxyToNode(w http.ResponseWriter, r *http.Request, node Node) error {
 	}
 
 	w.WriteHeader(resp.StatusCode)
-	_, err = io.Copy(w, resp.Body)
-	return err
+	// Once headers are committed, a second edge response must never be
+	// appended to a partial body. Failover applies only before commitment.
+	_, copyErr := io.Copy(w, resp.Body)
+	if copyErr != nil {
+		log.Printf("response stream interrupted: %v", copyErr)
+	}
+	return nil
 }

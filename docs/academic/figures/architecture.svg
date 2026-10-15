@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="495" height="330" preserveAspectRatio="xMinYMin meet" viewBox="0 0 495 330" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>...</title>
+	<desc>...</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="495" height="330"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-330)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="160" y="275" width="130" height="45" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,96%,96%); fill-rule: evenodd;"/>
+			<text x="213.498" y="294" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,588) scale(1,-1)">Client</text>
+			<rect x="160" y="210" width="130" height="50" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,96%,96%); fill-rule: evenodd;"/>
+			<text x="199.5095" y="248" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,496) scale(1,-1)">&lt;&lt;component&gt;&gt;</text>
+			<text x="211.4955" y="234" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,468) scale(1,-1)">Router</text>
+			<text x="187.488" y="222" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,444) scale(1,-1)">RR / CH / adaptive</text>
+			<rect x="350" y="210" width="125" height="50" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,96%,96%); fill-rule: evenodd;"/>
+			<text x="387.0095" y="248" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,496) scale(1,-1)">&lt;&lt;component&gt;&gt;</text>
+			<text x="389.4915" y="234" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,468) scale(1,-1)">Control API</text>
+			<rect x="350" y="275" width="125" height="45" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,96%,96%); fill-rule: evenodd;"/>
+			<text x="384.996" y="294" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,588) scale(1,-1)">Redis registry</text>
+			<rect x="10" y="120" width="125" height="55" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,96%,96%); fill-rule: evenodd;"/>
+			<text x="47.0095" y="163" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,326) scale(1,-1)">&lt;&lt;component&gt;&gt;</text>
+			<text x="58.2395" y="149" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,298) scale(1,-1)">Edge 1</text>
+			<text x="41.864000000000004" y="137" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,274) scale(1,-1)">LRU + fill gates</text>
+			<rect x="185" y="120" width="125" height="55" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,96%,96%); fill-rule: evenodd;"/>
+			<text x="222.0095" y="163" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,326) scale(1,-1)">&lt;&lt;component&gt;&gt;</text>
+			<text x="233.2395" y="149" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,298) scale(1,-1)">Edge 2</text>
+			<text x="216.864" y="137" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,274) scale(1,-1)">LRU + fill gates</text>
+			<rect x="360" y="120" width="125" height="55" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,96%,96%); fill-rule: evenodd;"/>
+			<text x="397.0095" y="163" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,326) scale(1,-1)">&lt;&lt;component&gt;&gt;</text>
+			<text x="408.2395" y="149" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,298) scale(1,-1)">Edge 3</text>
+			<text x="391.864" y="137" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,274) scale(1,-1)">LRU + fill gates</text>
+			<rect x="185" y="25" width="125" height="50" style="stroke: rgb(9%,41%,47%); stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,96%,96%); fill-rule: evenodd;"/>
+			<text x="222.0095" y="63" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,126) scale(1,-1)">&lt;&lt;component&gt;&gt;</text>
+			<text x="235.4985" y="49" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,98) scale(1,-1)">Origin</text>
+			<path d="M 225,275 L 225,260 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8;"/>
+			<polygon points="225 260, 222 266, 228 266" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<path d="M 290,235 L 350,235 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8;"/>
+			<polygon points="350 235, 344 238, 344 232" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<text x="309.9695" y="241.0" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,482) scale(1,-1)">discover</text>
+			<path d="M 412,260 L 412,275 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8;"/>
+			<polygon points="412 275, 409 269, 415 269" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<path d="M 72,190 L 422,190 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 225,210 L 225,190 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8;"/>
+			<polygon points="225 190, 222 196, 228 196" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<path d="M 72,190 L 72,175 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8;"/>
+			<polygon points="72 175, 69 181, 75 181" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<path d="M 72,120 L 72,95 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 247,190 L 247,175 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8;"/>
+			<polygon points="247 175, 244 181, 250 181" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<path d="M 247,120 L 247,95 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 422,190 L 422,175 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8;"/>
+			<polygon points="422 175, 419 181, 425 181" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<path d="M 422,120 L 422,95 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 72,95 L 422,95 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 247,95 L 247,75 Z" style="stroke: rgb(32%,45%,49%); stroke-linecap: butt; stroke-width: 0.8;"/>
+			<polygon points="247 75, 244 81, 250 81" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(32%,45%,49%); fill-rule: evenodd;"/>
+			<text x="232.3005" y="91.0" style="font-family: Helvetica; font-size: 7px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,182) scale(1,-1)">HTTP fetch</text>
+			<text x="5" y="6" style="font-family: Helvetica; font-size: 9px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,12) scale(1,-1)">Prometheus scrapes router/edges; Grafana queries Prometheus.</text>
+		</g>
+	</g>
+</svg>

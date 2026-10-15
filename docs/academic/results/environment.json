@@ -1,0 +1,71 @@
+{
+  "capturedAt": "2026-10-10T10:51:12.4025334Z",
+  "nativeGo": "go version go1.27.0 windows/amd64",
+  "dockerDesktop": "Docker Desktop 4.94.0 (241994)",
+  "dockerEngine": "29.8.2",
+  "compose": "5.5.1",
+  "dockerCPUs": 12,
+  "dockerMemoryBytes": 8129228800,
+  "kernel": "6.18.33.2-microsoft-standard-WSL2",
+  "architecture": "x86_64",
+  "gitBaseRevision": "32731f4937289ca0733d5befcfc604023e2c6a8f",
+  "workingTreeContainsUncommittedImplementation": true,
+  "services": [
+    {
+      "service": "control",
+      "state": "running",
+      "image": "sha256:0a00a64cade93108d3a02306d62ba684322953abdf98a5d8a12f54ffa2db8e12"
+    },
+    {
+      "service": "edge-1",
+      "state": "running",
+      "image": "minicdn-edge-1"
+    },
+    {
+      "service": "edge-2",
+      "state": "running",
+      "image": "minicdn-edge-2"
+    },
+    {
+      "service": "edge-3",
+      "state": "running",
+      "image": "minicdn-edge-3"
+    },
+    {
+      "service": "grafana",
+      "state": "running",
+      "image": "grafana/grafana-oss:latest"
+    },
+    {
+      "service": "router-adaptive",
+      "state": "running",
+      "image": "minicdn-router-adaptive"
+    },
+    {
+      "service": "router-rr",
+      "state": "running",
+      "image": "minicdn-router-rr"
+    },
+    {
+      "service": "origin",
+      "state": "running",
+      "image": "sha256:0155110e2fcb37e989139f0674faa81ab263cbc67546ad40e75032a822be1355"
+    },
+    {
+      "service": "prometheus",
+      "state": "running",
+      "image": "prom/prometheus:latest"
+    },
+    {
+      "service": "redis",
+      "state": "running",
+      "image": "redis:7-alpine"
+    },
+    {
+      "service": "router",
+      "state": "running",
+      "image": "minicdn-router"
+    }
+  ],
+  "caveat": "Recorded after trials; one local Docker host, not a regional CDN deployment. Exact tested working-tree sources must be retained with the results."
+}

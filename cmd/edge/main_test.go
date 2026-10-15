@@ -75,6 +75,14 @@ func TestParseCacheControl(t *testing.T) {
 			}
 		})
 	}
+	for _, header := range []string{`private="Set-Cookie", max-age=60`, "PUBLIC, NO-STORE, MAX-AGE=60"} {
+		if parseCacheControl(header) != 0 {
+			t.Fatalf("unsafe directive accepted: %s", header)
+		}
+	}
+	if parseCacheControl("max-age=60, s-maxage=10") != 10*time.Second {
+		t.Fatal("shared freshness did not take precedence")
+	}
 }
 
 func TestZeroTTLCacheRegression(t *testing.T) {
