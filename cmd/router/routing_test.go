@@ -9,7 +9,7 @@ func TestRoundRobinFairness(t *testing.T) {
 	var s selector
 	counts := map[string]int{}
 	for i := 0; i < 30; i++ {
-		ids, release := s.reserve("round_robin", []string{"c", "a", "b"}, 2)
+		ids, release := s.reserve("round_robin", []string{"c", "a", "b"}, 2, 2)
 		counts[ids[0]]++
 		release()
 	}
@@ -24,13 +24,13 @@ func TestAdaptiveLocalityAndSpillover(t *testing.T) {
 	var s selector
 	var releases []func()
 	for i := 0; i < 3; i++ {
-		ids, release := s.reserve("adaptive", []string{"a", "b", "c"}, 2)
+		ids, release := s.reserve("adaptive", []string{"a", "b", "c"}, 2, 2)
 		if ids[0] != "a" {
 			t.Fatal("owner spilled before threshold")
 		}
 		releases = append(releases, release)
 	}
-	ids, release := s.reserve("adaptive", []string{"a", "b", "c"}, 2)
+	ids, release := s.reserve("adaptive", []string{"a", "b", "c"}, 2, 2)
 	if ids[0] != "b" {
 		t.Fatalf("hot owner not spilled: %v", ids)
 	}
@@ -49,10 +49,48 @@ func TestSelectorConcurrent(t *testing.T) {
 	var wg sync.WaitGroup
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
-		go func() { defer wg.Done(); _, done := s.reserve("adaptive", []string{"a", "b"}, 2); done() }()
+		go func() {
+			defer wg.Done()
+			_, done := s.reserve("adaptive", []string{"a", "b"}, 2, 2)
+			done()
+		}()
 	}
 	wg.Wait()
 	if s.load("a") != 0 || s.load("b") != 0 {
 		t.Fatal("reservation leaked")
+	}
+}
+
+func TestLeastLoadedSelectsLowestRouterLocalInflight(t *testing.T) {
+	var s selector
+	var releases []func()
+	for i := 0; i < 3; i++ {
+		_, release := s.reserve("consistent_hash", []string{"owner", "other"}, 0, 2)
+		releases = append(releases, release)
+	}
+	ids, release := s.reserve("least_loaded", []string{"owner", "other"}, 0, 2)
+	if ids[0] != "other" {
+		t.Fatalf("least-loaded selected %q, want other", ids[0])
+	}
+	release()
+	for _, done := range releases {
+		done()
+	}
+}
+
+func TestBoundedLoadSpillsWhenOwnerExceedsRouterLocalCapacity(t *testing.T) {
+	var s selector
+	var releases []func()
+	for i := 0; i < 3; i++ {
+		_, release := s.reserve("consistent_hash", []string{"owner", "other", "third"}, 0, 2)
+		releases = append(releases, release)
+	}
+	ids, release := s.reserve("bounded_load", []string{"owner", "other", "third"}, 0, 2)
+	if ids[0] != "other" {
+		t.Fatalf("bounded-load selected %q, want an under-capacity edge", ids[0])
+	}
+	release()
+	for _, done := range releases {
+		done()
 	}
 }

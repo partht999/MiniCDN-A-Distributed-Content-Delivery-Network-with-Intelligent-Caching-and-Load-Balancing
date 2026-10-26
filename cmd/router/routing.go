@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	"math"
 	"sort"
 	"sync"
 )
@@ -25,7 +26,7 @@ func (s *selector) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-func (s *selector) reserve(mode string, candidates []string, slack int) ([]string, func()) {
+func (s *selector) reserve(mode string, candidates []string, slack int, capacityFactor float64) ([]string, func()) {
 	s.mu.Lock()
 	if s.loads == nil {
 		s.loads = make(map[string]int)
@@ -40,6 +41,38 @@ func (s *selector) reserve(mode string, candidates []string, slack int) ([]strin
 		index := int(s.next % uint64(len(ids)))
 		s.next++
 		ids = append(ids[index:], ids[:index]...)
+	} else if mode == "least_loaded" {
+		best := 0
+		for i := range ids {
+			if s.loads[ids[i]] < s.loads[ids[best]] {
+				best = i
+			}
+		}
+		ids[0], ids[best] = ids[best], ids[0]
+	} else if mode == "bounded_load" {
+		total := 0
+		for _, id := range ids {
+			total += s.loads[id]
+		}
+		capacity := int(math.Ceil(capacityFactor * float64(total) / float64(len(ids))))
+		ownerWithinCapacity := s.loads[ids[0]] < capacity
+		if !ownerWithinCapacity {
+			best := -1
+			for i, id := range ids {
+				if s.loads[id] < capacity && (best < 0 || s.loads[id] < s.loads[ids[best]]) {
+					best = i
+				}
+			}
+			if best < 0 {
+				best = 0
+				for i := range ids {
+					if s.loads[ids[i]] < s.loads[ids[best]] {
+						best = i
+					}
+				}
+			}
+			ids[0], ids[best] = ids[best], ids[0]
+		}
 	} else if mode == "adaptive" {
 		best := 0
 		for i := range ids {

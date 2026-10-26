@@ -55,6 +55,9 @@ func TestRouterConnectionFailureFallsBack(t *testing.T) {
 	if rec.Code != 200 || rec.Body.String() != "content" || healthyNodes["first"] {
 		t.Fatal("failed connection did not fall back")
 	}
+	if rec.Header().Get("X-Hash-Owner") != "first" || rec.Header().Get("X-Edge-Node") != "second" {
+		t.Fatalf("unexpected owner/serving edge headers: owner=%q serving=%q", rec.Header().Get("X-Hash-Owner"), rec.Header().Get("X-Edge-Node"))
+	}
 	if routeSelector.load("first") != 0 || routeSelector.load("second") != 0 {
 		t.Fatal("fallback reservation leaked")
 	}

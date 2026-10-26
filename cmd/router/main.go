@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net"
 	"net/http"
 	"os"
@@ -28,12 +29,13 @@ type Node struct {
 }
 
 var (
-	controlURL    = "http://localhost:7000"
-	port          = "8080"
-	routingMode   = "consistent_hash"
-	adaptiveSlack = 2
-	routeSelector selector
-	proxyClient   = &http.Client{Timeout: 12 * time.Second, Transport: &http.Transport{
+	controlURL                = "http://localhost:7000"
+	port                      = "8080"
+	routingMode               = "consistent_hash"
+	adaptiveSlack             = 2
+	boundedLoadCapacityFactor = 2.0
+	routeSelector             selector
+	proxyClient               = &http.Client{Timeout: 12 * time.Second, Transport: &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
 		DialContext:           (&net.Dialer{Timeout: 500 * time.Millisecond, KeepAlive: 30 * time.Second}).DialContext,
 		ResponseHeaderTimeout: 1500 * time.Millisecond,
@@ -96,8 +98,10 @@ func main() {
 	if mode := os.Getenv("ROUTING_MODE"); mode != "" {
 		routingMode = mode
 	}
-	if routingMode != "consistent_hash" && routingMode != "round_robin" && routingMode != "adaptive" {
-		log.Fatal("ROUTING_MODE must be consistent_hash, round_robin or adaptive")
+	if routingMode != "consistent_hash" && routingMode != "round_robin" &&
+		routingMode != "adaptive" && routingMode != "least_loaded" &&
+		routingMode != "bounded_load" {
+		log.Fatal("ROUTING_MODE must be consistent_hash, round_robin, adaptive, least_loaded or bounded_load")
 	}
 	if value := os.Getenv("ADAPTIVE_SLACK"); value != "" {
 		n, err := strconv.Atoi(value)
@@ -105,6 +109,13 @@ func main() {
 			log.Fatal("ADAPTIVE_SLACK must be nonnegative")
 		}
 		adaptiveSlack = n
+	}
+	if value := os.Getenv("BOUNDED_LOAD_CAPACITY_FACTOR"); value != "" {
+		factor, err := strconv.ParseFloat(value, 64)
+		if err != nil || math.IsNaN(factor) || math.IsInf(factor, 0) || factor <= 1 {
+			log.Fatal("BOUNDED_LOAD_CAPACITY_FACTOR must be a finite number greater than 1")
+		}
+		boundedLoadCapacityFactor = factor
 	}
 	if ctrl := os.Getenv("CONTROL_URL"); ctrl != "" {
 		controlURL = ctrl
@@ -146,7 +157,12 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "ok", "routing_mode": routingMode})
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":                       "ok",
+			"routing_mode":                 routingMode,
+			"adaptive_slack":               strconv.Itoa(adaptiveSlack),
+			"bounded_load_capacity_factor": strconv.FormatFloat(boundedLoadCapacityFactor, 'f', -1, 64),
+		})
 	})
 	mux.HandleFunc("/", handleRoute)
 	mux.Handle("/metrics", promhttp.Handler())
@@ -241,7 +257,7 @@ func handleRoute(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	nodesMu.RUnlock()
-	candidates, release := routeSelector.reserve(routingMode, filtered, adaptiveSlack)
+	candidates, release := routeSelector.reserve(routingMode, filtered, adaptiveSlack, boundedLoadCapacityFactor)
 	defer release()
 
 	if len(candidates) == 0 {
@@ -249,12 +265,13 @@ func handleRoute(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Service Unavailable (No healthy edge nodes)", http.StatusServiceUnavailable)
 		return
 	}
+	hashOwner := filtered[0]
 
 	var success bool
 	for index, nodeID := range candidates {
 		attemptRelease := release
 		if index > 0 {
-			_, attemptRelease = routeSelector.reserve("consistent_hash", []string{nodeID}, 0)
+			_, attemptRelease = routeSelector.reserve("consistent_hash", []string{nodeID}, 0, boundedLoadCapacityFactor)
 		}
 		// Verify node is healthy and exists
 		node, ok := available[nodeID]
@@ -263,7 +280,7 @@ func handleRoute(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.Header().Set("X-Routing-Mode", routingMode)
-		err := proxyToNode(w, r, node)
+		err := proxyToNode(w, r, node, hashOwner)
 		attemptRelease()
 		if err == nil {
 			success = true
@@ -286,7 +303,7 @@ func handleRoute(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func proxyToNode(w http.ResponseWriter, r *http.Request, node Node) error {
+func proxyToNode(w http.ResponseWriter, r *http.Request, node Node, hashOwner string) error {
 	destURL := fmt.Sprintf("http://%s:%d%s", node.Host, node.Port, r.URL.Path)
 	if r.URL.RawQuery != "" {
 		destURL = fmt.Sprintf("%s?%s", destURL, r.URL.RawQuery)
@@ -313,11 +330,15 @@ func proxyToNode(w http.ResponseWriter, r *http.Request, node Node) error {
 
 	// Copy response headers back to client
 	for k, vv := range resp.Header {
+		if k == "X-Hash-Owner" {
+			continue
+		}
 		for _, v := range vv {
 			w.Header().Add(k, v)
 		}
 	}
 
+	w.Header().Set("X-Hash-Owner", hashOwner)
 	w.WriteHeader(resp.StatusCode)
 	// Once headers are committed, a second edge response must never be
 	// appended to a partial body. Failover applies only before commitment.
