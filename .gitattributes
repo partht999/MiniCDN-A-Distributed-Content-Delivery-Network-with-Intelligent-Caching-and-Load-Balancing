@@ -1,3 +1,4 @@
 *.pdf binary
 *.pptx binary
 *.png binary
+docs/academic/results/*requests* filter=lfs diff=lfs merge=lfs -text
