@@ -1,0 +1,58 @@
+\relax 
+\citation{karger1997consistent}
+\citation{mirrokni2018bounded}
+\citation{chen2021revisiting}
+\citation{pai1998lard}
+\citation{mitzenmacher2001power}
+\citation{eisenbud2016maglev}
+\citation{nygren2010akamai}
+\citation{maggs2015nuggets}
+\citation{vakali2003cdn,sahoo2017replica}
+\citation{chen2002replica}
+\citation{archer2019cacheaware}
+\citation{vattani2015stampede}
+\citation{rfc9110}
+\citation{haproxy2026manual}
+\@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}}
+\@writefile{toc}{\contentsline {section}{\numberline {II}Related Work}{1}}
+\@writefile{toc}{\contentsline {section}{\numberline {III}System and Routing Policies}{2}}
+\@writefile{toc}{\contentsline {section}{\numberline {IV}Experimental Method}{2}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {IV-A}}Configuration}{2}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {IV-B}}Metrics and Statistics}{2}}
+\@writefile{toc}{\contentsline {section}{\numberline {V}Results}{2}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {V-A}}Retained Comparison}{2}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {V-B}}Same-Session Policy and Slack Results}{2}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {V-C}}Capacity-Only Check}{3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {V-D}}Paired Differences}{3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {V-E}}Spill Latency}{3}}
+\@writefile{toc}{\contentsline {section}{\numberline {VI}Discussion}{3}}
+\@writefile{toc}{\contentsline {section}{\numberline {VII}Threats to Validity}{3}}
+\@writefile{toc}{\contentsline {section}{\numberline {VIII}Conclusion}{3}}
+\bibstyle{IEEEtran}
+\bibdata{references}
+\bibcite{karger1997consistent}{1}
+\bibcite{mirrokni2018bounded}{2}
+\bibcite{chen2021revisiting}{3}
+\bibcite{pai1998lard}{4}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Excess origin attempts versus request-count CV. Points summarize same-session policy/workload conditions; error bars are trial-level 95\% $t$-intervals. Source: \path {routing-sweep-2026-10-25T19-23-50-602Z.json}.}}{4}}
+\newlabel{fig:pareto}{{1}{4}}
+\@writefile{toc}{\contentsline {section}{References}{4}}
+\bibcite{mitzenmacher2001power}{5}
+\bibcite{eisenbud2016maglev}{6}
+\bibcite{nygren2010akamai}{7}
+\bibcite{maggs2015nuggets}{8}
+\bibcite{vakali2003cdn}{9}
+\bibcite{sahoo2017replica}{10}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Paired run-level differences from consistent hashing across four workloads. Positive/negative values indicate larger/smaller outcomes for round robin or adaptive routing; bars are 95\% paired $t$-intervals. Source: \path {routing-analysis-primary-2026-11-03-paired.csv}.}}{5}}
+\newlabel{fig:paired}{{2}{5}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces HIT ratio versus adaptive spill slack. The plot includes non-adaptive consistent-hash and round-robin reference lines. Source: \path {routing-sweep-2026-10-25T19-23-50-602Z.json}.}}{5}}
+\newlabel{fig:hit}{{3}{5}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces P95 client latency versus adaptive spill slack. Error bars are trial-level bootstrap 95\% intervals for the mean. The y-axis is capped at 200\nobreakspace  {}ms; the annotation identifies the 19-error condition whose interval exceeds the displayed range. Source: \path {routing-sweep-2026-10-25T19-23-50-602Z.json}.}}{5}}
+\newlabel{fig:p95}{{4}{5}}
+\bibcite{chen2002replica}{11}
+\bibcite{archer2019cacheaware}{12}
+\bibcite{vattani2015stampede}{13}
+\bibcite{rfc9110}{14}
+\bibcite{haproxy2026manual}{15}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Per-trial P95 latency for spilled and non-spilled requests, split by workload and HIT/MISS status, at adaptive slack 2. Source: \path {routing-sweep-2026-10-25T19-23-50-602Z-requests.csv}.}}{6}}
+\newlabel{fig:spill}{{5}{6}}

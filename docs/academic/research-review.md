@@ -84,11 +84,17 @@ H1: Round robin balances request counts better than plain hashing, but may dupli
 
 The proposed rule preserves the hash owner unless its in-flight count exceeds the least-loaded candidate by more than a slack of two. It does not enforce an origin budget. An origin-budget-aware variant is a future research direction and must not appear as an implemented USP.
 
-## Controlled experiment and data schema
+## Initial retained comparison and data schema
 
-Three policies, three repeated runs, four workloads: uniform, Zipf exponent 1.1, changing hot set, and repeated-key cold burst. Each trial starts with a prefix purge acknowledged by all three edges. Use seed 2100260 plus repetition index, 256 objects of 1024 bytes, 64 KiB body capacity per edge, concurrency 16, 768 requests, 20 ms emulated origin delay and one-hour origin freshness. Rotate policy order each run. No warm-up requests are included. This is a closed-loop single-machine Docker experiment.
+The retained 10 October comparison has three policies, three repeated runs, and four workloads: uniform, Zipf exponent 1.1, changing hot set, and repeated-key cold burst. It uses 768 requests per trial, 256 objects of 1024 bytes, 64 KiB body capacity per edge, concurrency 16, 20 ms emulated origin delay, and one-hour origin freshness. This is a closed-loop single-machine Docker experiment. The retained source data remains unchanged.
 
-Record individual latency, HTTP status, key, selected edge and cache status. Derive P50/P95/P99 from raw client measurements, successful throughput, response-body validation errors, request CV across all three edges, cache HIT fraction and origin/coalescing counter deltas. Save JSON, CSV and raw JSONL. Counters are sampled directly at each edge before/after each trial; Grafana provides live observability. Report each repeat and mean/range across repeats, not only the best run.
+The original comparison recorded individual latency, HTTP status, key, selected edge and cache status. Derived values, including per-trial distinct-key floors and excess origin attempts, are reproducible from the retained JSON/JSONL and `scripts/reproduce-routing-results.mjs`.
+
+## Expanded follow-up evaluation
+
+The expanded study records ten repetitions of 3,000 measured requests after 256 warm-up requests and an acknowledged cache purge. Seeds derive from base seed 2100260 plus run index; concurrency remains 16, with 256 1-KiB objects, 64 KiB body capacity per edge, and 20 ms origin delay. It adds adaptive slack values 0, 1, 2, 4, 8, and 1000, plus least-loaded router-local and bounded-load router-local policies (capacity factor 2). Router load state is unshared. The 1.2-million request exports include trial ID, key, serving edge, hash owner, spill flag, cache status, latency, and error information. Trial-level Student t intervals are used for hit ratio, origin work, distinct-key floor, excess attempts, and request CV; latency/error intervals use deterministic 10,000-resample percentile bootstrap intervals. The generated analysis and source files are listed in `docs/academic/results/routing-analysis-2026-10-26.md`.
+
+In the extended Zipf sweep, adaptive slack 0 to 1000 raises HIT from 74.74% to 90.87% and lowers excess origin attempts from 523.5 to 39.8 per trial, while request CV rises from 0.084 to 0.313. The router-local baselines are not implementations of the Mirrokni et al. bounded-load algorithm. One uniform/slack-1000 condition contains 19 request errors, and the spill-latency evidence varies by workload; both must be disclosed.
 
 Caveats: equal body capacity excludes metadata/temporary buffers; equal request counts do not equal CPU load. Closed-loop traffic can hide overload behavior. Origin delay is synthetic, node regions are local labels, and CRC32 virtual-node placement is measured rather than assumed uniform. Cache coalescing changes apparent HIT status of an initial miss, so HIT fraction and actual origin attempts must both be reported. Test failure recovery separately from the no-failure comparison.
 

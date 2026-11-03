@@ -4,16 +4,19 @@ services:
       - ./configs/prometheus/experiments.yml:/etc/prometheus/prometheus.yml
   origin:
     environment:
-      - ORIGIN_DELAY_MS=20
+      - ORIGIN_DELAY_MS=${ORIGIN_DELAY_MS:-20}
   edge-1:
     environment:
-      - CACHE_MAX_BYTES=65536
+      - CACHE_MAX_BYTES=${CACHE_BYTES:-65536}
+      - EDGE_MAX_CONCURRENT_REQUESTS=${EDGE_MAX_CONCURRENT_REQUESTS:-0}
   edge-2:
     environment:
-      - CACHE_MAX_BYTES=65536
+      - CACHE_MAX_BYTES=${CACHE_BYTES:-65536}
+      - EDGE_MAX_CONCURRENT_REQUESTS=${EDGE_MAX_CONCURRENT_REQUESTS:-0}
   edge-3:
     environment:
-      - CACHE_MAX_BYTES=65536
+      - CACHE_MAX_BYTES=${CACHE_BYTES:-65536}
+      - EDGE_MAX_CONCURRENT_REQUESTS=${EDGE_MAX_CONCURRENT_REQUESTS:-0}
   router-rr:
     build:
       context: .
@@ -32,4 +35,73 @@ services:
       - ROUTING_MODE=adaptive
       - ADAPTIVE_SLACK=2
     ports: ["8085:8080"]
+    depends_on: [control, edge-1, edge-2, edge-3]
+  router-adaptive-0:
+    build:
+      context: .
+      dockerfile: cmd/router/Dockerfile
+    environment:
+      - CONTROL_URL=http://control:7000
+      - ROUTING_MODE=adaptive
+      - ADAPTIVE_SLACK=0
+    ports: ["8086:8080"]
+    depends_on: [control, edge-1, edge-2, edge-3]
+  router-adaptive-1:
+    build:
+      context: .
+      dockerfile: cmd/router/Dockerfile
+    environment:
+      - CONTROL_URL=http://control:7000
+      - ROUTING_MODE=adaptive
+      - ADAPTIVE_SLACK=1
+    ports: ["8087:8080"]
+    depends_on: [control, edge-1, edge-2, edge-3]
+  router-adaptive-4:
+    build:
+      context: .
+      dockerfile: cmd/router/Dockerfile
+    environment:
+      - CONTROL_URL=http://control:7000
+      - ROUTING_MODE=adaptive
+      - ADAPTIVE_SLACK=4
+    ports: ["8088:8080"]
+    depends_on: [control, edge-1, edge-2, edge-3]
+  router-adaptive-8:
+    build:
+      context: .
+      dockerfile: cmd/router/Dockerfile
+    environment:
+      - CONTROL_URL=http://control:7000
+      - ROUTING_MODE=adaptive
+      - ADAPTIVE_SLACK=8
+    ports: ["8089:8080"]
+    depends_on: [control, edge-1, edge-2, edge-3]
+  router-adaptive-1000:
+    build:
+      context: .
+      dockerfile: cmd/router/Dockerfile
+    environment:
+      - CONTROL_URL=http://control:7000
+      - ROUTING_MODE=adaptive
+      - ADAPTIVE_SLACK=1000
+    ports: ["8090:8080"]
+    depends_on: [control, edge-1, edge-2, edge-3]
+  router-least-loaded:
+    build:
+      context: .
+      dockerfile: cmd/router/Dockerfile
+    environment:
+      - CONTROL_URL=http://control:7000
+      - ROUTING_MODE=least_loaded
+    ports: ["8091:8080"]
+    depends_on: [control, edge-1, edge-2, edge-3]
+  router-bounded-load:
+    build:
+      context: .
+      dockerfile: cmd/router/Dockerfile
+    environment:
+      - CONTROL_URL=http://control:7000
+      - ROUTING_MODE=bounded_load
+      - BOUNDED_LOAD_CAPACITY_FACTOR=${BOUNDED_LOAD_CAPACITY_FACTOR:-2}
+    ports: ["8092:8080"]
     depends_on: [control, edge-1, edge-2, edge-3]

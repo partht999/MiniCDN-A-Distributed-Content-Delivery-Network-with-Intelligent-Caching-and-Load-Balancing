@@ -3,11 +3,75 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"mini-cdn/pkg/cache"
 )
+
+func TestLimitConcurrentRequests(t *testing.T) {
+	entered := make(chan struct{}, 2)
+	release := make(chan struct{})
+	var inFlight int32
+	var maxInFlight int32
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		current := atomic.AddInt32(&inFlight, 1)
+		for {
+			maximum := atomic.LoadInt32(&maxInFlight)
+			if current <= maximum || atomic.CompareAndSwapInt32(&maxInFlight, maximum, current) {
+				break
+			}
+		}
+		entered <- struct{}{}
+		<-release
+		atomic.AddInt32(&inFlight, -1)
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := limitConcurrentRequests(next, 1)
+
+	firstDone := make(chan struct{})
+	go func() {
+		handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
+		close(firstDone)
+	}()
+	<-entered
+
+	secondDone := make(chan struct{})
+	go func() {
+		handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
+		close(secondDone)
+	}()
+	select {
+	case <-entered:
+		t.Fatal("second request entered while the sole permit was occupied")
+	case <-time.After(20 * time.Millisecond):
+	}
+
+	release <- struct{}{}
+	<-firstDone
+	select {
+	case <-entered:
+	case <-time.After(time.Second):
+		t.Fatal("second request did not enter after the permit was released")
+	}
+	release <- struct{}{}
+	<-secondDone
+	if got := atomic.LoadInt32(&maxInFlight); got != 1 {
+		t.Fatalf("maximum in-flight handlers = %d, want 1", got)
+	}
+}
+
+func TestLimitConcurrentRequestsZeroLeavesHandlerUnwrapped(t *testing.T) {
+	called := false
+	handler := limitConcurrentRequests(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		called = true
+	}), 0)
+	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
+	if !called {
+		t.Fatal("handler was not called with the default unlimited setting")
+	}
+}
 
 func TestParseCacheControl(t *testing.T) {
 	tests := []struct {

@@ -1,3 +1,5 @@
 *.pdf binary
 *.pptx binary
 *.png binary
+docs/academic/results/*requests*.csv filter=lfs diff=lfs merge=lfs -text
+docs/academic/results/routing-requests-*.json filter=lfs diff=lfs merge=lfs -text

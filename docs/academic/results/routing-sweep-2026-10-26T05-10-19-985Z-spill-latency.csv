@@ -1,0 +1,3 @@
+workload,policy,slack,spill,cacheStatus,n,p50_ms,p95_ms
+"uniform","adaptive","1000","non_spilled","MISS","7988","52.88290000000052","97.04709999999977"
+"uniform","adaptive","1000","non_spilled","HIT","22012","10.003300000000309","27.752300000000105"

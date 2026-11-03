@@ -118,16 +118,14 @@ func fileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", contentType)
 
-	// Handle Conditional Request (If-None-Match)
+	// Handle Conditional Request (If-None-Match takes precedence over If-Modified-Since per RFC 9110)
 	ifNoneMatch := r.Header.Get("If-None-Match")
-	if ifNoneMatch != "" && (ifNoneMatch == etag || ifNoneMatch == "*") {
-		w.WriteHeader(http.StatusNotModified)
-		return
-	}
-
-	// Handle Conditional Request (If-Modified-Since)
-	ifModifiedSinceHeader := r.Header.Get("If-Modified-Since")
-	if ifModifiedSinceHeader != "" {
+	if ifNoneMatch != "" {
+		if ifNoneMatch == etag || ifNoneMatch == "*" {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+	} else if ifModifiedSinceHeader := r.Header.Get("If-Modified-Since"); ifModifiedSinceHeader != "" {
 		if t, err := time.Parse(http.TimeFormat, ifModifiedSinceHeader); err == nil {
 			if !lastModified.After(t) {
 				w.WriteHeader(http.StatusNotModified)

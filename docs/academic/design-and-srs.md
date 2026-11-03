@@ -19,7 +19,7 @@ Edge cache identity is the decoded request path plus raw query, within one confi
 | ID | Requirement | Acceptance/evidence |
 | --- | --- | --- |
 | FR01 | Serve origin content through router and edge | HTTP 200 body matches the requested fixture; query variants remain isolated |
-| FR02 | Provide selectable round robin, hash and adaptive policies | ROUTING_MODE validated at startup; response identifies mode; selection tests and common workload traces |
+| FR02 | Provide selectable round robin, consistent hash, adaptive spillover, least-loaded router-local, and bounded-load router-local policies | ROUTING_MODE validated at startup; adaptive slack and bounded-load capacity factor configurable; response identifies mode; selection tests and common workload traces |
 | FR03 | Enforce memory-body capacity and LRU eviction | CACHE_MAX_BYTES, oversized rejection, replacement accounting and least-recent eviction tests; metadata is extra; entry count capped at 10,000 |
 | FR04 | Coordinate concurrent same-key cacheable fills | 32-client controlled burst compares independent origin attempts to one coordinated fill; independent keys continue |
 | FR05 | Respect freshness and conditionally validate stale entries | Expired content is withheld until origin validates or replaces it; 304 renews body freshness; private/no-store bypass storage |
@@ -37,7 +37,7 @@ NFR02 Concurrency: shared state is locked; fills are keyed; cancelled waiting re
 
 NFR03 Performance: measure P50/P95/P99, successful throughput, request-count coefficient of variation, cache hit ratio and origin attempts. The proposal's >85% hit and <5 second failover are workload-dependent targets, not blanket guarantees. Router connections have a 500 ms dial deadline and 1.5 s response-header deadline after a measured eight-second failure exposed a problem. The complete response retains a 12 s timeout, so a stalled body or host scheduling delays can still exceed the target. Record the tested failure type and timing boundary.
 
-NFR04 Reproducibility: closed-loop clients, equal trace/capacity/TTL and sequential policy trials. Repeat three times and rotate policy order. Record machine/container versions; report ranges across runs. Prometheus histogram percentiles are estimates and do not replace raw client latency samples.
+NFR04 Reproducibility: preserve the initial three-repetition comparison as a distinct retained dataset. The expanded evaluation uses deterministic seed + run-index derivation, 256 warm-up requests followed by a cache purge, 3,000 measured requests, ten repetitions per condition, concurrency 16, 64 KiB body capacity per edge, 256 1-KiB objects, and 20-ms synthetic origin delay. Report trial-level intervals and retain raw per-request data; Prometheus histogram percentiles do not replace client latency samples.
 
 NFR05 Deployment: expose only HTTPS entry points on a VPS. Keep Redis, control, edges and Prometheus internal. Require a non-default Grafana password. Persist Redis AOF and Grafana data. Public hosting requires a host, DNS and credential configuration.
 
@@ -45,7 +45,7 @@ NFR06 Maintainability: separate origin, control, router, cache, hash and edge mo
 
 ## Interface contract
 
-GET/HEAD /{resource}: client content path via router. X-Edge-Node identifies serving edge, X-Cache reports HIT/MISS/REVALIDATED/BYPASS, X-Routing-Mode identifies policy.
+GET/HEAD /{resource}: client content path via router. X-Edge-Node identifies serving edge, X-Hash-Owner identifies the original healthy-ring hash owner, X-Cache reports HIT/MISS/REVALIDATED/BYPASS, and X-Routing-Mode identifies policy. The experiment harness derives spill status by comparing serving edge and hash owner.
 
 GET /api/v1/nodes: control returns currently leased nodes. POST /api/v1/nodes: heartbeat registration, returns purge_generation. Five-second heartbeat, 15-second lease. Router independently probes /health.
 
