@@ -20,19 +20,21 @@ import (
 )
 
 var (
-	nodeID              = "edge-1"
-	region              = "local"
-	originURL           = "http://localhost:9000"
-	controlURL          = "http://localhost:7000"
-	port                = "8080"
-	cdnCache            *cache.Cache
-	cacheFills          fillGroup
-	cacheOperations     sync.RWMutex
-	purgeGeneration     int64
-	coalescingEnabled         = true
-	maxObjectBytes      int64 = 4 * 1024 * 1024
-	originClient              = &http.Client{Timeout: 10 * time.Second}
-	originRequestsTotal       = prometheus.NewCounterVec(prometheus.CounterOpts{
+	nodeID                = "edge-1"
+	region                = "local"
+	originURL             = "http://localhost:9000"
+	controlURL            = "http://localhost:7000"
+	port                  = "8080"
+	cdnCache              *cache.Cache
+	cacheFills            fillGroup
+	cacheOperations       sync.RWMutex
+	purgeGeneration       int64
+	cacheCapacityBytes    int64
+	maxConcurrentRequests int
+	coalescingEnabled           = true
+	maxObjectBytes        int64 = 4 * 1024 * 1024
+	originClient                = &http.Client{Timeout: 10 * time.Second}
+	originRequestsTotal         = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "cdn_origin_requests_total",
 		Help: "Origin HTTP attempts, including misses and bypasses.",
 	}, []string{"node_id"})
@@ -101,6 +103,23 @@ func metricsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func limitConcurrentRequests(next http.Handler, limit int) http.Handler {
+	if limit <= 0 {
+		return next
+	}
+
+	semaphore := make(chan struct{}, limit)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case semaphore <- struct{}{}:
+			defer func() { <-semaphore }()
+		case <-r.Context().Done():
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 type Node struct {
 	ID     string `json:"id"`
 	Host   string `json:"host"`
@@ -132,6 +151,15 @@ func main() {
 		port = p
 	}
 
+	maxConcurrentRequests = 0
+	if value := os.Getenv("EDGE_MAX_CONCURRENT_REQUESTS"); value != "" {
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 {
+			log.Fatal("EDGE_MAX_CONCURRENT_REQUESTS must be a nonnegative integer")
+		}
+		maxConcurrentRequests = n
+	}
+
 	capacity := int64(64 * 1024 * 1024)
 	if value := os.Getenv("CACHE_MAX_BYTES"); value != "" {
 		n, err := strconv.ParseInt(value, 10, 64)
@@ -148,6 +176,7 @@ func main() {
 		maxObjectBytes = n
 	}
 	cdnCache = cache.NewBoundedCache(capacity)
+	cacheCapacityBytes = capacity
 	prometheus.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{Name: "cache_body_bytes", Help: "Cached response-body bytes (metadata excluded).", ConstLabels: prometheus.Labels{"node_id": nodeID}}, func() float64 { n, _ := cdnCache.Usage(); return float64(n) }))
 	prometheus.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{Name: "cache_evictions_total", Help: "Cumulative capacity evictions.", ConstLabels: prometheus.Labels{"node_id": nodeID}}, func() float64 { _, n := cdnCache.Usage(); return float64(n) }))
 	coalescingEnabled = os.Getenv("COALESCING_ENABLED") != "false"
@@ -180,7 +209,8 @@ func main() {
 	mux.HandleFunc("/health", handleHealth)
 	mux.HandleFunc("/internal/purge", handlePurge)
 	mux.Handle("/metrics", promhttp.Handler())
-	mux.HandleFunc("/", handleProxy)
+	var proxyHandler http.Handler = http.HandlerFunc(handleProxy)
+	mux.Handle("/", limitConcurrentRequests(proxyHandler, maxConcurrentRequests))
 
 	if err := http.ListenAndServe(":"+port, metricsMiddleware(mux)); err != nil {
 		log.Fatalf("Edge Node failed to start: %v", err)
@@ -246,10 +276,12 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":    "ok",
-		"node_id":   nodeID,
-		"region":    region,
-		"hit_ratio": hitRatio,
+		"status":                  "ok",
+		"node_id":                 nodeID,
+		"region":                  region,
+		"hit_ratio":               hitRatio,
+		"cache_max_bytes":         cacheCapacityBytes,
+		"max_concurrent_requests": maxConcurrentRequests,
 	})
 }
 

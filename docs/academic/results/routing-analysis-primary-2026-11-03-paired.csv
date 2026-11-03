@@ -1,0 +1,113 @@
+workload,policy,slack,metric,metric_label,n_pairs,mean_difference_vs_consistent_hash,ci95_low,ci95_high,ci_excludes_zero
+changing_hot,adaptive,0,excess_origin_attempts,Excess origin attempts difference,10,504.4,484.3226350175129,524.4773649824871,True
+changing_hot,adaptive,0,hit_ratio,HIT difference (percentage points),10,-16.813333333333333,-17.482578832749567,-16.144087833917098,True
+changing_hot,adaptive,0,p95_ms,P95 difference (ms),10,21.287149999983377,-2.69409632078559,45.268396320752345,False
+changing_hot,adaptive,0,request_cv,Request CV difference,10,-0.20676825570144436,-0.22699913971646787,-0.18653737168642084,True
+changing_hot,adaptive,1,excess_origin_attempts,Excess origin attempts difference,10,368.3,350.0163162037843,386.5836837962157,True
+changing_hot,adaptive,1,hit_ratio,HIT difference (percentage points),10,-12.276666666666667,-12.88612279320719,-11.667210540126145,True
+changing_hot,adaptive,1,p95_ms,P95 difference (ms),10,14.98692999996274,-4.1470293487243275,34.12088934864981,False
+changing_hot,adaptive,1,request_cv,Request CV difference,10,-0.15587390167547938,-0.16595111030671905,-0.1457966930442397,True
+changing_hot,adaptive,2,excess_origin_attempts,Excess origin attempts difference,10,243.4,231.30211758033664,255.49788241966337,True
+changing_hot,adaptive,2,hit_ratio,HIT difference (percentage points),10,-8.113333333333332,-8.516596080655443,-7.710070586011219,True
+changing_hot,adaptive,2,p95_ms,P95 difference (ms),10,4.286539999957313,-7.87515494335911,16.448234943273736,False
+changing_hot,adaptive,2,request_cv,Request CV difference,10,-0.10980970970937261,-0.12334306255487903,-0.09627635686386618,True
+changing_hot,adaptive,4,excess_origin_attempts,Excess origin attempts difference,10,103.3,93.51512495940801,113.08487504059198,True
+changing_hot,adaptive,4,hit_ratio,HIT difference (percentage points),10,-3.443333333333333,-3.7694958346863983,-3.1171708319802676,True
+changing_hot,adaptive,4,p95_ms,P95 difference (ms),10,3.36931999996159,-0.5159860496762345,7.254626049599414,False
+changing_hot,adaptive,4,request_cv,Request CV difference,10,-0.04728845216895773,-0.05346858887500797,-0.04110831546290749,True
+changing_hot,adaptive,8,excess_origin_attempts,Excess origin attempts difference,10,16.7,13.918363294748936,19.481636705251063,True
+changing_hot,adaptive,8,hit_ratio,HIT difference (percentage points),10,-0.5566666666666653,-0.649387890175034,-0.46394544315829667,True
+changing_hot,adaptive,8,p95_ms,P95 difference (ms),10,-3.2651700000555137,-11.998038436216085,5.4676984361050565,False
+changing_hot,adaptive,8,request_cv,Request CV difference,10,-0.00736210445087111,-0.008560798499308043,-0.0061634104024341765,True
+changing_hot,adaptive,1000,excess_origin_attempts,Excess origin attempts difference,10,-0.2,-1.0793075457426713,0.6793075457426714,False
+changing_hot,adaptive,1000,hit_ratio,HIT difference (percentage points),10,0.006666666666669263,-0.02264358485808637,0.0359769181914249,False
+changing_hot,adaptive,1000,p95_ms,P95 difference (ms),10,3.189179999973567,-3.1055157697997413,9.483875769746875,False
+changing_hot,adaptive,1000,request_cv,Request CV difference,10,0.0,0.0,0.0,False
+changing_hot,round_robin,,excess_origin_attempts,Excess origin attempts difference,10,567.2,545.303341493278,589.0966585067221,True
+changing_hot,round_robin,,hit_ratio,HIT difference (percentage points),10,-18.906666666666663,-19.636555283557396,-18.17677804977593,True
+changing_hot,round_robin,,p95_ms,P95 difference (ms),10,24.1906399999687,1.051501812277266,47.32977818766013,True
+changing_hot,round_robin,,request_cv,Request CV difference,10,-0.28465667343899054,-0.2960977366985073,-0.27321561017947377,True
+cold_burst,adaptive,0,excess_origin_attempts,Excess origin attempts difference,10,2.0,2.0,2.0,True
+cold_burst,adaptive,0,hit_ratio,HIT difference (percentage points),10,-0.06666666666667043,-0.06666666666667043,-0.06666666666667043,True
+cold_burst,adaptive,0,p95_ms,P95 difference (ms),10,11.68851999999024,4.458373463323932,18.918666536656545,True
+cold_burst,adaptive,0,request_cv,Request CV difference,10,-1.2535085669652102,-1.278587478050766,-1.2284296558796544,True
+cold_burst,adaptive,1,excess_origin_attempts,Excess origin attempts difference,10,2.0,2.0,2.0,True
+cold_burst,adaptive,1,hit_ratio,HIT difference (percentage points),10,-0.06666666666667043,-0.06666666666667043,-0.06666666666667043,True
+cold_burst,adaptive,1,p95_ms,P95 difference (ms),10,5.945279999982449,-0.5116952872845166,12.402255287249414,False
+cold_burst,adaptive,1,request_cv,Request CV difference,10,-1.086217766295303,-1.1186750310025488,-1.0537605015880571,True
+cold_burst,adaptive,2,excess_origin_attempts,Excess origin attempts difference,10,2.0,2.0,2.0,True
+cold_burst,adaptive,2,hit_ratio,HIT difference (percentage points),10,-0.06666666666667043,-0.06666666666667043,-0.06666666666667043,True
+cold_burst,adaptive,2,p95_ms,P95 difference (ms),10,5.575909999964642,0.32268076429978443,10.8291392356295,True
+cold_burst,adaptive,2,request_cv,Request CV difference,10,-0.9057452886803254,-0.9247177623644757,-0.8867728149961752,True
+cold_burst,adaptive,4,excess_origin_attempts,Excess origin attempts difference,10,2.0,2.0,2.0,True
+cold_burst,adaptive,4,hit_ratio,HIT difference (percentage points),10,-0.06666666666667043,-0.06666666666667043,-0.06666666666667043,True
+cold_burst,adaptive,4,p95_ms,P95 difference (ms),10,8.034559999997146,-0.7942813974881968,16.86340139748249,False
+cold_burst,adaptive,4,request_cv,Request CV difference,10,-0.6233042083402465,-0.6554349346809707,-0.5911734819995222,True
+cold_burst,adaptive,8,excess_origin_attempts,Excess origin attempts difference,10,2.0,2.0,2.0,True
+cold_burst,adaptive,8,hit_ratio,HIT difference (percentage points),10,-0.06666666666667043,-0.06666666666667043,-0.06666666666667043,True
+cold_burst,adaptive,8,p95_ms,P95 difference (ms),10,0.17552999997524238,-4.505558443243758,4.856618443194242,False
+cold_burst,adaptive,8,request_cv,Request CV difference,10,-0.21848939245984775,-0.24917613787863563,-0.18780264704105987,True
+cold_burst,adaptive,1000,excess_origin_attempts,Excess origin attempts difference,10,0.0,0.0,0.0,False
+cold_burst,adaptive,1000,hit_ratio,HIT difference (percentage points),10,0.0,0.0,0.0,False
+cold_burst,adaptive,1000,p95_ms,P95 difference (ms),10,1.4899099999602186,-4.278246567255405,7.258066567175842,False
+cold_burst,adaptive,1000,request_cv,Request CV difference,10,0.0,0.0,0.0,False
+cold_burst,round_robin,,excess_origin_attempts,Excess origin attempts difference,10,2.0,2.0,2.0,True
+cold_burst,round_robin,,hit_ratio,HIT difference (percentage points),10,-0.06666666666667043,-0.06666666666667043,-0.06666666666667043,True
+cold_burst,round_robin,,p95_ms,P95 difference (ms),10,6.231389999983366,0.3781495226958391,12.084630477270894,True
+cold_burst,round_robin,,request_cv,Request CV difference,10,-1.4142135623730951,-1.4142135623730951,-1.4142135623730951,True
+uniform,adaptive,0,excess_origin_attempts,Excess origin attempts difference,10,1275.0,1259.9388617959996,1290.0611382040004,True
+uniform,adaptive,0,hit_ratio,HIT difference (percentage points),10,-42.5,-43.00203794013335,-41.99796205986665,True
+uniform,adaptive,0,p95_ms,P95 difference (ms),10,16.480770000012672,-19.227564278346417,52.18910427837176,False
+uniform,adaptive,0,request_cv,Request CV difference,10,-0.10350923128612173,-0.12093330753557972,-0.08608515503666374,True
+uniform,adaptive,1,excess_origin_attempts,Excess origin attempts difference,10,877.6,856.73394398934,898.46605601066,True
+uniform,adaptive,1,hit_ratio,HIT difference (percentage points),10,-29.25333333333333,-29.948868533688664,-28.557798132977997,True
+uniform,adaptive,1,p95_ms,P95 difference (ms),10,9.76325999998753,-7.644031036407624,27.170551036382683,False
+uniform,adaptive,1,request_cv,Request CV difference,10,-0.10195933248231906,-0.1174994266778817,-0.08641923828675642,True
+uniform,adaptive,2,excess_origin_attempts,Excess origin attempts difference,10,577.2,562.1056807983931,592.294319201607,True
+uniform,adaptive,2,hit_ratio,HIT difference (percentage points),10,-19.24,-19.743143973386896,-18.7368560266131,True
+uniform,adaptive,2,p95_ms,P95 difference (ms),10,8.272560000002523,-5.192825440098677,21.737945440103722,False
+uniform,adaptive,2,request_cv,Request CV difference,10,-0.0825946658187344,-0.0902906600172569,-0.0748986716202119,True
+uniform,adaptive,4,excess_origin_attempts,Excess origin attempts difference,10,252.5,239.75204727809208,265.24795272190795,True
+uniform,adaptive,4,hit_ratio,HIT difference (percentage points),10,-8.416666666666664,-8.841598424063594,-7.991734909269734,True
+uniform,adaptive,4,p95_ms,P95 difference (ms),10,12.710100000018974,-1.5547174837010385,26.974917483738984,False
+uniform,adaptive,4,request_cv,Request CV difference,10,-0.053800196087206945,-0.057395595297525276,-0.05020479687688861,True
+uniform,adaptive,8,excess_origin_attempts,Excess origin attempts difference,10,30.8,19.115189237304698,42.484810762695304,True
+uniform,adaptive,8,hit_ratio,HIT difference (percentage points),10,-1.0266666666666646,-1.4161603587565061,-0.6371729745768231,True
+uniform,adaptive,8,p95_ms,P95 difference (ms),10,14.754900000001907,2.316219905781118,27.193580094222696,True
+uniform,adaptive,8,request_cv,Request CV difference,10,-0.0081529644236378,-0.010229327031809662,-0.006076601815465939,True
+uniform,adaptive,1000,excess_origin_attempts,Excess origin attempts difference,10,27.8,-43.91788629456393,99.51788629456392,False
+uniform,adaptive,1000,hit_ratio,HIT difference (percentage points),10,-0.8333333333333304,-3.012931010173918,1.3462643435072574,False
+uniform,adaptive,1000,p95_ms,P95 difference (ms),10,111.16504999998924,-120.66270096491698,342.9928009648954,False
+uniform,adaptive,1000,request_cv,Request CV difference,10,-0.0017628252459290007,-0.0057503359522203985,0.0022246854603623976,False
+uniform,round_robin,,excess_origin_attempts,Excess origin attempts difference,10,1453.4,1432.8773443862644,1473.9226556137357,True
+uniform,round_robin,,hit_ratio,HIT difference (percentage points),10,-48.446666666666665,-49.13075518712452,-47.76257814620881,True
+uniform,round_robin,,p95_ms,P95 difference (ms),10,15.965009999982248,-1.6674059045217025,33.5974259044862,False
+uniform,round_robin,,request_cv,Request CV difference,10,-0.12252782598558631,-0.14357957970091914,-0.10147607227025349,True
+zipf,adaptive,0,excess_origin_attempts,Excess origin attempts difference,10,484.1,465.74679742279295,502.4532025772071,True
+zipf,adaptive,0,hit_ratio,HIT difference (percentage points),10,-16.136666666666667,-16.748440085906903,-15.52489324742643,True
+zipf,adaptive,0,p95_ms,P95 difference (ms),10,12.39023999999481,-16.505355915873416,41.28583591586303,False
+zipf,adaptive,0,request_cv,Request CV difference,10,-0.22842552239628375,-0.23922682915358312,-0.21762421563898438,True
+zipf,adaptive,1,excess_origin_attempts,Excess origin attempts difference,10,337.8,320.52434778771004,355.07565221229,True
+zipf,adaptive,1,hit_ratio,HIT difference (percentage points),10,-11.26,-11.835855073743,-10.684144926257,True
+zipf,adaptive,1,p95_ms,P95 difference (ms),10,5.766370000000461,-11.091139177439192,22.623879177440113,False
+zipf,adaptive,1,request_cv,Request CV difference,10,-0.16879702231827468,-0.18391091761826672,-0.15368312701828263,True
+zipf,adaptive,2,excess_origin_attempts,Excess origin attempts difference,10,215.5,201.4859409092155,229.5140590907845,True
+zipf,adaptive,2,hit_ratio,HIT difference (percentage points),10,-7.183333333333332,-7.650468636359481,-6.716198030307183,True
+zipf,adaptive,2,p95_ms,P95 difference (ms),10,3.308179999983986,-17.12364805419894,23.74000805416691,False
+zipf,adaptive,2,request_cv,Request CV difference,10,-0.12887446646709697,-0.1425895735490965,-0.11515935938509743,True
+zipf,adaptive,4,excess_origin_attempts,Excess origin attempts difference,10,85.3,79.97855452344008,90.62144547655991,True
+zipf,adaptive,4,hit_ratio,HIT difference (percentage points),10,-2.8433333333333324,-3.0207148492186624,-2.6659518174480024,True
+zipf,adaptive,4,p95_ms,P95 difference (ms),10,-10.181349999990198,-25.46845448384355,5.105754483863157,False
+zipf,adaptive,4,request_cv,Request CV difference,10,-0.06194927996859306,-0.06880640140271414,-0.05509215853447198,True
+zipf,adaptive,8,excess_origin_attempts,Excess origin attempts difference,10,11.9,8.048690814800766,15.751309185199235,True
+zipf,adaptive,8,hit_ratio,HIT difference (percentage points),10,-0.3966666666666663,-0.5250436395066412,-0.2682896938266913,True
+zipf,adaptive,8,p95_ms,P95 difference (ms),10,-15.62626999999775,-35.185915940551624,3.9333759405561217,False
+zipf,adaptive,8,request_cv,Request CV difference,10,-0.00807135341634611,-0.010397727517104148,-0.005744979315588072,True
+zipf,adaptive,1000,excess_origin_attempts,Excess origin attempts difference,10,0.4,-0.9146439213718672,1.7146439213718674,False
+zipf,adaptive,1000,hit_ratio,HIT difference (percentage points),10,-0.013333333333334085,-0.0571547973790621,0.03048813071239393,False
+zipf,adaptive,1000,p95_ms,P95 difference (ms),10,-17.860899999985122,-46.9027189750626,11.180918975092357,False
+zipf,adaptive,1000,request_cv,Request CV difference,10,0.0,0.0,0.0,False
+zipf,round_robin,,excess_origin_attempts,Excess origin attempts difference,10,535.9,521.9828265786475,549.8171734213524,True
+zipf,round_robin,,hit_ratio,HIT difference (percentage points),10,-17.863333333333333,-18.32723911404508,-17.399427552621585,True
+zipf,round_robin,,p95_ms,P95 difference (ms),10,32.88425000001007,8.181330039620843,57.587169960399294,True
+zipf,round_robin,,request_cv,Request CV difference,10,-0.3126175301498508,-0.32446308795691003,-0.3007719723427915,True

@@ -4,14 +4,19 @@ import path from 'node:path';
 import readline from 'node:readline';
 import { performance } from 'node:perf_hooks';
 
-const seed = 2100260;
+const seed = Number(process.env.SEED || 2100260);
 const objects = 256;
 const objectBytes = 1024;
+const cacheBytes = Number(process.env.CACHE_BYTES || 65536);
+const originDelayMs = Number(process.env.ORIGIN_DELAY_MS || 20);
+const zipfExponent = Number(process.env.ZIPF_EXPONENT || 1.1);
+const edgeMaxConcurrentRequests = Number(process.env.EDGE_MAX_CONCURRENT_REQUESTS || 0);
 const requests = Number(process.env.REQUESTS || 3000);
 const concurrency = Number(process.env.CONCURRENCY || 16);
 const repetitions = Number(process.env.REPETITIONS || 10);
 const warmupRequests = Number(process.env.WARMUP_REQUESTS || 256);
 const slacks = (process.env.SLACKS || '0,1,2,4,8,1000').split(',').map(Number);
+const requestedWorkloads = process.env.WORKLOADS?.split(',').map(value => value.trim()).filter(Boolean);
 const selectedPolicies = process.env.POLICIES?.split(',').map(value => value.trim()).filter(Boolean);
 const root = process.cwd();
 const startedAt = new Date();
@@ -21,7 +26,7 @@ const resultsDir = path.join(root, 'docs/academic/results');
 const resumeManifestArg = process.env.RESUME_MANIFEST;
 const outputPrefix = resumeManifestArg
   ? path.basename(resumeManifestArg).replace(/\.partial\.json$/, '')
-  : `routing-sweep-${runStamp}`;
+  : path.basename(process.env.OUTPUT_PREFIX || `routing-sweep-${runStamp}`);
 const dryRun = process.argv.includes('--dry-run');
 const policies = [
   { policy: 'consistent_hash', port: 8080, slack: null },
@@ -38,12 +43,19 @@ const policies = [
   (item.slack === null || slacks.includes(item.slack)) &&
   (!selectedPolicies || selectedPolicies.includes(item.policy)),
 );
-const workloads = ['uniform', 'zipf', 'changing_hot', 'cold_burst'];
+const allWorkloads = ['uniform', 'zipf', 'changing_hot', 'cold_burst'];
+const workloads = requestedWorkloads || allWorkloads;
 
 if (![requests, concurrency, repetitions].every(value => Number.isInteger(value) && value > 0) ||
+    !Number.isInteger(seed) || seed < 0 ||
     !Number.isInteger(warmupRequests) || warmupRequests < 0 ||
-    slacks.length === 0 || slacks.some(value => !Number.isInteger(value) || value < 0)) {
-  throw new Error('Invalid sweep configuration; counts and slack must be nonnegative integers.');
+    !Number.isInteger(cacheBytes) || cacheBytes <= 0 ||
+    !Number.isFinite(originDelayMs) || originDelayMs < 0 ||
+    !Number.isFinite(zipfExponent) || zipfExponent <= 0 ||
+    !Number.isInteger(edgeMaxConcurrentRequests) || edgeMaxConcurrentRequests < 0 ||
+    slacks.length === 0 || slacks.some(value => !Number.isInteger(value) || value < 0) ||
+    workloads.length === 0 || workloads.some(value => !allWorkloads.includes(value))) {
+  throw new Error('Invalid sweep configuration; counts and slack must be nonnegative integers, and workloads must be supported.');
 }
 if (!dryRun && (requests < 3000 || repetitions < 10 || warmupRequests === 0)) {
   throw new Error('Submission sweep requires at least 3000 measured requests, 10 repetitions, and a nonempty warm-up.');
@@ -51,7 +63,14 @@ if (!dryRun && (requests < 3000 || repetitions < 10 || warmupRequests === 0)) {
 if (dryRun) {
   console.log(JSON.stringify({
     mode: 'dry-run',
-    seedDerivation: 'seed + run index',
+    configuration: {
+      seed,
+      seedDerivation: 'seed + run index',
+      cacheBodyBytesPerEdge: cacheBytes,
+      originDelayMs,
+      zipfExponent,
+      edgeMaxConcurrentRequests,
+    },
     workloads,
     policies,
     repetitions,
@@ -79,7 +98,7 @@ function random(initial) {
 
 function trace(workload, run) {
   const rng = random(seed + run);
-  const weights = Array.from({ length: objects }, (_, index) => 1 / (index + 1) ** 1.1);
+  const weights = Array.from({ length: objects }, (_, index) => 1 / (index + 1) ** zipfExponent);
   const total = weights.reduce((sum, weight) => sum + weight, 0);
   return Array.from({ length: warmupRequests + requests }, (_, index) => {
     if (workload === 'uniform') return Math.floor(rng() * objects);
@@ -112,6 +131,18 @@ async function counters() {
     }
   }
   return { origin, coalesced };
+}
+
+async function validateEdgeConfiguration() {
+  for (const port of [8081, 8082, 8083]) {
+    const response = await fetch(`http://127.0.0.1:${port}/health`);
+    if (!response.ok) throw new Error(`Edge health unavailable on port ${port}: HTTP ${response.status}`);
+    const health = await response.json();
+    if (Number(health.cache_max_bytes) !== cacheBytes ||
+        Number(health.max_concurrent_requests) !== edgeMaxConcurrentRequests) {
+      throw new Error(`Edge configuration mismatch on port ${port}: ${JSON.stringify(health)}`);
+    }
+  }
 }
 
 async function purgeBenchmarkCache() {
@@ -164,7 +195,8 @@ async function runWarmup(port, keys, trialId) {
 
 const csvValue = value => `"${String(value ?? '').replaceAll('"', '""')}"`;
 const requestFields = [
-  'trialId', 'run', 'workload', 'policy', 'slack', 'index', 'key', 'servingEdge',
+  'trialId', 'run', 'workload', 'policy', 'slack', 'index', 'key', 'startedAt',
+  'completedAt', 'servingEdge',
   'hashOwnerEdge', 'spilled', 'cacheStatus', 'latencyMs', 'httpStatus', 'error',
 ];
 const csvLine = row => requestFields.map(field => csvValue(row[field])).join(',') + '\n';
@@ -173,21 +205,27 @@ const metadata = {
   seedDerivation: 'seed + run index',
   objects,
   objectBytes,
-  cacheBodyBytesPerEdge: 65536,
+  cacheBodyBytesPerEdge: cacheBytes,
+  zipfExponent,
   concurrency,
+  edgeMaxConcurrentRequests,
   repetitions,
   requestsPerTrial: requests,
   warmupRequests,
-  originDelayMs: 20,
+  originDelayMs,
   cacheTTLSeconds: 3600,
   workloads,
   slacks,
   policies: [...new Set(policies.map(item => item.policy))],
   boundedLoadCapacityFactor: Number(process.env.BOUNDED_LOAD_CAPACITY_FACTOR || 2),
   hashReplicas: 50,
+  experimentLabel: process.env.EXPERIMENT_LABEL || outputPrefix,
   method: 'closed-loop; stack warm-up excluded, followed by acknowledged cache purge; single host Docker; no network impairment',
   createdAt: new Date().toISOString(),
-  requestFields: ['trialId', 'key', 'servingEdge', 'hashOwnerEdge', 'spilled', 'cacheStatus', 'latencyMs'],
+  requestFields: [
+    'trialId', 'key', 'startedAt', 'completedAt', 'servingEdge', 'hashOwnerEdge',
+    'spilled', 'cacheStatus', 'latencyMs', 'httpStatus', 'error',
+  ],
 };
 const partialManifestPath = path.join(resultsDir, `${outputPrefix}.partial.json`);
 const partialRequestsPath = path.join(resultsDir, `${outputPrefix}-requests.partial.csv`);
@@ -269,6 +307,7 @@ if (resumeManifestArg) {
 }
 
 try {
+  await validateEdgeConfiguration();
   for (let run = 0; run < repetitions; run++) {
     const order = policies.slice(run % policies.length).concat(policies.slice(0, run % policies.length));
     for (const workload of workloads) {
@@ -311,10 +350,12 @@ try {
             const index = next++;
             const key = measuredKeys[index];
             const begin = performance.now();
+            const startedAt = new Date().toISOString();
             try {
               const response = await fetch(`http://127.0.0.1:${port}/benchmark/${key}.txt`);
               const body = await response.text();
               const latencyMs = performance.now() - begin;
+              const completedAt = new Date().toISOString();
               latencies.push(latencyMs);
               const servingEdge = response.headers.get('x-edge-node');
               const hashOwnerEdge = response.headers.get('x-hash-owner');
@@ -326,10 +367,11 @@ try {
               if (servingEdge) edges[servingEdge] = (edges[servingEdge] || 0) + 1;
               statuses[cacheStatus] = (statuses[cacheStatus] || 0) + 1;
               const request = {
-                trialId, run, workload, policy, slack, index, key, servingEdge,
+                trialId, run, workload, policy, slack, index, key, startedAt,
+                completedAt, servingEdge,
                 hashOwnerEdge, spilled, cacheStatus, latencyMs, httpStatus: response.status,
                 error: requestError
-                  ? `status=${response.status}, bodyLength=${body.length}, servingEdge=${servingEdge}, hashOwnerEdge=${hashOwnerEdge}`
+                  ? `status=${response.status}, body=${JSON.stringify(body.slice(0, 200))}, bodyLength=${body.length}, servingEdge=${servingEdge}, hashOwnerEdge=${hashOwnerEdge}`
                   : '',
               };
               trialRaw.push(request);
@@ -342,10 +384,12 @@ try {
             } catch (error) {
               errors++;
               const latencyMs = performance.now() - begin;
+              const completedAt = new Date().toISOString();
               latencies.push(latencyMs);
               trialRaw.push({
-                trialId, run, workload, policy, slack, index, key, servingEdge: '',
-                hashOwnerEdge: '', spilled: '', cacheStatus: 'ERROR', latencyMs,
+                trialId, run, workload, policy, slack, index, key, startedAt,
+                completedAt, servingEdge: '', hashOwnerEdge: '', spilled: '',
+                cacheStatus: 'ERROR', latencyMs,
                 httpStatus: '', error: String(error),
               });
             }

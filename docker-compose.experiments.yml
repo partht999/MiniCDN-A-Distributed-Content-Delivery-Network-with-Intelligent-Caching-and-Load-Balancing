@@ -4,16 +4,19 @@ services:
       - ./configs/prometheus/experiments.yml:/etc/prometheus/prometheus.yml
   origin:
     environment:
-      - ORIGIN_DELAY_MS=20
+      - ORIGIN_DELAY_MS=${ORIGIN_DELAY_MS:-20}
   edge-1:
     environment:
-      - CACHE_MAX_BYTES=65536
+      - CACHE_MAX_BYTES=${CACHE_BYTES:-65536}
+      - EDGE_MAX_CONCURRENT_REQUESTS=${EDGE_MAX_CONCURRENT_REQUESTS:-0}
   edge-2:
     environment:
-      - CACHE_MAX_BYTES=65536
+      - CACHE_MAX_BYTES=${CACHE_BYTES:-65536}
+      - EDGE_MAX_CONCURRENT_REQUESTS=${EDGE_MAX_CONCURRENT_REQUESTS:-0}
   edge-3:
     environment:
-      - CACHE_MAX_BYTES=65536
+      - CACHE_MAX_BYTES=${CACHE_BYTES:-65536}
+      - EDGE_MAX_CONCURRENT_REQUESTS=${EDGE_MAX_CONCURRENT_REQUESTS:-0}
   router-rr:
     build:
       context: .
